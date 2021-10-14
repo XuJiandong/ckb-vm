@@ -3,6 +3,7 @@ use super::super::memory::Memory;
 use super::super::RISCV_MAX_MEMORY;
 use super::register::Register;
 use super::utils::update_register;
+use super::v_register::{VRegister, U1024, U256, U512};
 use super::{Error, Immediate, RegisterIndex, UImmediate};
 
 // Other instruction set functions common with RVC
@@ -377,4 +378,171 @@ pub fn jal<Mac: Machine>(machine: &mut Mac, rd: RegisterIndex, imm: Immediate, x
     let link = machine.pc().overflowing_add(&Mac::REG::from_u8(xbytes));
     update_register(machine, rd, link);
     machine.update_pc(machine.pc().overflowing_add(&Mac::REG::from_i32(imm)));
+}
+
+// ==================
+// #  vset{i}vl{i}  #
+// ==================
+pub fn set_vl<Mac: Machine>(
+    machine: &mut Mac,
+    rd: RegisterIndex,
+    rs1: RegisterIndex,
+    reqvl: u32,
+    new_type: u32,
+) -> Result<(), Error> {
+    let old_vsew = machine.get_vsew();
+    machine.set_vl(rd, rs1, Mac::REG::from_u32(reqvl), new_type);
+    update_register(machine, rd, Mac::REG::from_u32(machine.get_vl()));
+    // https://github.com/riscv/riscv-v-spec/blob/master/v-spec.adoc#344-vector-type-illegal-vill
+    //
+    // > If the vill bit is set, then any attempt to execute a vector instruction that
+    // > depends upon vtype will raise an illegal-instruction exception.
+    //
+    // Check vill right here can reduce repeated vill checks.
+    if machine.get_vill() {
+        return Err(Error::Vill);
+    }
+
+    let new_vsew = machine.get_vsew();
+    if old_vsew != new_vsew {
+        for i in 0..32 {
+            let fr = &machine.vregisters()[i];
+            let le_byte = match fr {
+                VRegister::U8(data) => *data,
+                VRegister::U16(data) => {
+                    let mut r = [0x00; 256];
+                    for (i, e) in data.iter().enumerate() {
+                        let start = i * 2;
+                        let end = (i + 1) * 2;
+                        r[start..end].copy_from_slice(&e.to_le_bytes());
+                    }
+                    r
+                }
+                VRegister::U32(data) => {
+                    let mut r = [0x00; 256];
+                    for (i, e) in data.iter().enumerate() {
+                        let start = i * 4;
+                        let end = (i + 1) * 4;
+                        r[start..end].copy_from_slice(&e.to_le_bytes());
+                    }
+                    r
+                }
+                VRegister::U64(data) => {
+                    let mut r = [0x00; 256];
+                    for (i, e) in data.iter().enumerate() {
+                        let start = i * 8;
+                        let end = (i + 1) * 8;
+                        r[start..end].copy_from_slice(&e.to_le_bytes());
+                    }
+                    r
+                }
+                VRegister::U128(data) => {
+                    let mut r = [0x00; 256];
+                    for (i, e) in data.iter().enumerate() {
+                        let start = i * 16;
+                        let end = (i + 1) * 16;
+                        r[start..end].copy_from_slice(&e.to_le_bytes());
+                    }
+                    r
+                }
+                VRegister::U256(data) => {
+                    let mut r = [0x00; 256];
+                    for (i, e) in data.iter().enumerate() {
+                        let start = i * 32;
+                        let end = (i + 1) * 32;
+                        r[start..end].copy_from_slice(&e.to_le_bytes());
+                    }
+                    r
+                }
+                VRegister::U512(data) => {
+                    let mut r = [0x00; 256];
+                    for (i, e) in data.iter().enumerate() {
+                        let start = i * 64;
+                        let end = (i + 1) * 64;
+                        r[start..end].copy_from_slice(&e.to_le_bytes());
+                    }
+                    r
+                }
+                VRegister::U1024(data) => {
+                    let mut r = [0x00; 256];
+                    for (i, e) in data.iter().enumerate() {
+                        let start = i * 128;
+                        let end = (i + 1) * 128;
+                        r[start..end].copy_from_slice(&e.to_le_bytes());
+                    }
+                    r
+                }
+            };
+            let tr = match new_vsew {
+                8 => VRegister::U8(le_byte),
+                16 => {
+                    let mut buf = [0x00; 2];
+                    let mut r = [0x00; 128];
+                    for i in 0..128 {
+                        buf.copy_from_slice(&le_byte[i * 2..(i + 1) * 2]);
+                        r[i] = u16::from_le_bytes(buf);
+                    }
+                    VRegister::U16(r)
+                }
+                32 => {
+                    let mut buf = [0x00; 4];
+                    let mut r = [0x00; 64];
+                    for i in 0..64 {
+                        buf.copy_from_slice(&le_byte[i * 4..(i + 1) * 4]);
+                        r[i] = u32::from_le_bytes(buf);
+                    }
+                    VRegister::U32(r)
+                }
+                64 => {
+                    let mut buf = [0x00; 8];
+                    let mut r = [0x00; 32];
+                    for i in 0..32 {
+                        buf.copy_from_slice(&le_byte[i * 8..(i + 1) * 8]);
+                        r[i] = u64::from_le_bytes(buf);
+                    }
+                    VRegister::U64(r)
+                }
+                128 => {
+                    let mut buf = [0x00; 16];
+                    let mut r = [0x00; 16];
+                    for i in 0..16 {
+                        buf.copy_from_slice(&le_byte[i * 16..(i + 1) * 16]);
+                        r[i] = u128::from_le_bytes(buf);
+                    }
+                    VRegister::U128(r)
+                }
+                256 => {
+                    let mut buf = [0x00; 32];
+                    let mut r = [U256::MIN; 8];
+                    for i in 0..8 {
+                        buf.copy_from_slice(&le_byte[i * 32..(i + 1) * 32]);
+                        r[i] = U256::from_le_bytes(buf);
+                    }
+                    VRegister::U256(r)
+                }
+                512 => {
+                    let mut buf = [0x00; 64];
+                    let mut r = [U512::MIN; 4];
+                    for i in 0..4 {
+                        buf.copy_from_slice(&le_byte[i * 64..(i + 1) * 64]);
+                        r[i] = U512::from_le_bytes(buf);
+                    }
+                    VRegister::U512(r)
+                }
+                1024 => {
+                    let mut buf = [0x00; 128];
+                    let mut r = [U1024::MIN; 2];
+                    for i in 0..2 {
+                        buf.copy_from_slice(&le_byte[i * 128..(i + 1) * 128]);
+                        r[i] = U1024::from_le_bytes(buf);
+                    }
+                    VRegister::U1024(r)
+                }
+                _ => unreachable!(),
+            };
+            machine.set_vregister(i, tr);
+        }
+    }
+
+    Ok(())
 }

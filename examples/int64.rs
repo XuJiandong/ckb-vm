@@ -1,0 +1,29 @@
+use ckb_vm::CoreMachine;
+use ckb_vm::SupportMachine;
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let args: Vec<String> = std::env::args().collect();
+    let code = std::fs::read(&args[1])?.into();
+
+    let core_machine = ckb_vm::DefaultCoreMachine::<u64, ckb_vm::SparseMemory<u64>>::new(
+        ckb_vm::ISA_IMC | ckb_vm::ISA_B | ckb_vm::ISA_V,
+        ckb_vm::machine::VERSION1,
+        u64::MAX,
+    );
+
+    let machine_builder =
+        ckb_vm::DefaultMachineBuilder::new(core_machine).instruction_cycle_func(Box::new(|_| 1));
+    let mut machine = machine_builder.build();
+    machine.load_program(&code, &vec!["main".into()]).unwrap();
+
+    let exit = machine.run();
+    let cycles = machine.cycles();
+    println!(
+        "int exit={:?} cycles={:?} r[a1]={:?}",
+        exit,
+        cycles,
+        machine.registers()[ckb_vm::registers::A1]
+    );
+
+    std::process::exit(exit.unwrap() as i32);
+}
