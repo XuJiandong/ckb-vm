@@ -1627,12 +1627,12 @@ pub fn vfunc_msleu_vx(
         }
         (VRegister::U128(a), VRegister::U128(ref mut r)) => {
             for i in 0..num {
-                r[i] = if a[i] <= rhs as i128 as u128 { 1 } else { 0 };
+                r[i] = if a[i] <= rhs as i64 as i128 as u128 { 1 } else { 0 };
             }
         }
         (VRegister::U64(a), VRegister::U64(ref mut r)) => {
             for i in 0..num {
-                r[i] = if a[i] <= rhs as i64 as u64 { 1 } else { 0 };
+                r[i] = if a[i] <= rhs { 1 } else { 0 };
             }
         }
         (VRegister::U32(a), VRegister::U32(ref mut r)) => {
@@ -1755,12 +1755,12 @@ pub fn vfunc_msgtu_vx(
         }
         (VRegister::U128(a), VRegister::U128(ref mut r)) => {
             for i in 0..num {
-                r[i] = if a[i] > rhs as i128 as u128 { 1 } else { 0 };
+                r[i] = if a[i] > rhs as i64 as i128 as u128 { 1 } else { 0 };
             }
         }
         (VRegister::U64(a), VRegister::U64(ref mut r)) => {
             for i in 0..num {
-                r[i] = if a[i] > rhs as i64 as u64 { 1 } else { 0 };
+                r[i] = if a[i] > rhs { 1 } else { 0 };
             }
         }
         (VRegister::U32(a), VRegister::U32(ref mut r)) => {
