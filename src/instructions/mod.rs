@@ -257,17 +257,17 @@ pub struct VItype(pub Instruction);
 impl VItype {
     pub fn new(
         op: InstructionOpcode,
-        rd: RegisterIndex,
+        vd: RegisterIndex,
         vs2: RegisterIndex,
         imm: UImmediate,
-        m: bool,
+        vm: bool,
     ) -> Self {
         let a = u64::from(op as u8);
         let b = u64::from(op) >> 8 << 16;
-        let c = u64::from(rd as u8) << 8;
+        let c = u64::from(vd as u8) << 8;
         let d = u64::from(vs2 as u8) << 32;
         let e = u64::from(imm) << 40;
-        let f = if m { 1u64 << 28 } else { 0 };
+        let f = if vm { 1u64 << 28 } else { 0 };
         VItype(a | b | c | d | e | f)
     }
 
@@ -275,7 +275,7 @@ impl VItype {
         ((self.0 >> 16 << 8) | (self.0 & 0xFF)) as InstructionOpcode
     }
 
-    pub fn rd(self) -> RegisterIndex {
+    pub fn vd(self) -> RegisterIndex {
         (self.0 >> 8) as u8 as RegisterIndex
     }
 
@@ -296,7 +296,7 @@ impl VItype {
         }
     }
 
-    pub fn m(self) -> bool {
+    pub fn vm(self) -> bool {
         self.0 & 1u64 << 28 != 0
     }
 }

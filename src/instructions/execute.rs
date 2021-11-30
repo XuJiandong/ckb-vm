@@ -1264,7 +1264,7 @@ pub fn execute_instruction<Mac: Machine>(
                 };
                 let vs2 = machine.vregisters()[i.vs2() as usize + j as usize];
                 let imm = i.immediate_s();
-                let mut vd = machine.get_vregister(i.rd() + j as usize);
+                let mut vd = machine.get_vregister(i.vd() + j as usize);
                 vfunc_add_vi(&vs2, imm, &mut vd, num as usize)?;
             }
         }
@@ -1324,7 +1324,7 @@ pub fn execute_instruction<Mac: Machine>(
                 };
                 let vs2 = machine.vregisters()[i.vs2() as usize + j as usize];
                 let imm = i.immediate_s();
-                let mut vd = machine.get_vregister(i.rd() + j as usize);
+                let mut vd = machine.get_vregister(i.vd() + j as usize);
                 vfunc_rsub_vi(&vs2, imm, &mut vd, num as usize)?;
             }
         }
@@ -1471,7 +1471,7 @@ pub fn execute_instruction<Mac: Machine>(
                 };
                 let vs2 = machine.vregisters()[i.vs2() as usize + j as usize];
                 let imm = i.immediate_u();
-                let mut vd = machine.get_vregister(i.rd() + j as usize);
+                let mut vd = machine.get_vregister(i.vd() + j as usize);
                 vfunc_sll_vi(&vs2, imm, &mut vd, num as usize)?;
             }
         }
@@ -1516,7 +1516,7 @@ pub fn execute_instruction<Mac: Machine>(
                 };
                 let vs2 = machine.vregisters()[i.vs2() as usize + j as usize];
                 let imm = i.immediate_u();
-                let mut vd = machine.get_vregister(i.rd() + j as usize);
+                let mut vd = machine.get_vregister(i.vd() + j as usize);
                 vfunc_srl_vi(&vs2, imm, &mut vd, num as usize)?;
             }
         }
@@ -1561,7 +1561,7 @@ pub fn execute_instruction<Mac: Machine>(
                 };
                 let vs2 = machine.vregisters()[i.vs2() as usize + j as usize];
                 let imm = i.immediate_u();
-                let mut vd = machine.get_vregister(i.rd() + j as usize);
+                let mut vd = machine.get_vregister(i.vd() + j as usize);
                 vfunc_sra_vi(&vs2, imm, &mut vd, num as usize)?;
             }
         }
@@ -1606,7 +1606,7 @@ pub fn execute_instruction<Mac: Machine>(
                 };
                 let vs2 = machine.vregisters()[i.vs2() as usize + j as usize];
                 let imm = i.immediate_s();
-                let mut vd = machine.get_vregister(i.rd() + j as usize);
+                let mut vd = machine.get_vregister(i.vd() + j as usize);
                 vfunc_mseq_vi(&vs2, imm, &mut vd, num as usize)?;
             }
         }
@@ -1651,7 +1651,7 @@ pub fn execute_instruction<Mac: Machine>(
                 };
                 let vs2 = machine.vregisters()[i.vs2() as usize + j as usize];
                 let imm = i.immediate_s();
-                let mut vd = machine.get_vregister(i.rd() + j as usize);
+                let mut vd = machine.get_vregister(i.vd() + j as usize);
                 vfunc_msne_vi(&vs2, imm, &mut vd, num as usize)?;
             }
         }
@@ -1732,7 +1732,7 @@ pub fn execute_instruction<Mac: Machine>(
                 };
                 let vs2 = machine.vregisters()[i.vs2() as usize + j as usize];
                 let imm = i.immediate_s();
-                let mut vd = machine.get_vregister(i.rd() + j as usize);
+                let mut vd = machine.get_vregister(i.vd() + j as usize);
                 vfunc_msleu_vi(&vs2, imm, &mut vd, num as usize)?;
             }
         }
@@ -1772,7 +1772,7 @@ pub fn execute_instruction<Mac: Machine>(
                 };
                 let vs2 = machine.vregisters()[i.vs2() as usize + j as usize];
                 let imm = i.immediate_s();
-                let mut vd = machine.get_vregister(i.rd() + j as usize);
+                let mut vd = machine.get_vregister(i.vd() + j as usize);
                 vfunc_msgtu_vi(&vs2, imm, &mut vd, num as usize)?;
             }
         }
