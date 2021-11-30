@@ -513,6 +513,8 @@ pub fn factory<R: Register>(instruction_bits: u32, _: u32) -> Option<Instruction
                 let inst_opt = match utils::x(instruction_bits, 26, 6, 0) {
                     0b_100000 => Some(insts::OP_VDIVU_VV),
                     0b_100010 => Some(insts::OP_VREMU_VV),
+                    0b_100001 => Some(insts::OP_VDIV_VV),
+                    0b_100011 => Some(insts::OP_VREM_VV),
                     0b_100101 => Some(insts::OP_VMUL_VV),
                     0b_010000 => match rs1(instruction_bits) {
                         0b_10001 => Some(insts::OP_VFIRST_M),
@@ -589,7 +591,9 @@ pub fn factory<R: Register>(instruction_bits: u32, _: u32) -> Option<Instruction
             0b_110 => {
                 let inst_opt = match utils::x(instruction_bits, 26, 6, 0) {
                     0b_100000 => Some(insts::OP_VDIVU_VX),
+                    0b_100001 => Some(insts::OP_VDIV_VX),
                     0b_100010 => Some(insts::OP_VREMU_VX),
+                    0b_100011 => Some(insts::OP_VREM_VX),
                     0b_100101 => Some(insts::OP_VMUL_VX),
                     _ => None,
                 };
