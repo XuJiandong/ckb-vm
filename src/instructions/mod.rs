@@ -293,6 +293,47 @@ impl VVtype {
 }
 
 #[derive(Debug, Clone, Copy)]
+pub struct VXtype(pub Instruction);
+
+impl VXtype {
+    pub fn new(
+        op: InstructionOpcode,
+        vd: RegisterIndex,
+        rs1: RegisterIndex,
+        vs2: RegisterIndex,
+        vm: bool,
+    ) -> Self {
+        let a = u64::from(op as u8);
+        let b = u64::from(op) >> 8 << 16;
+        let c = u64::from(vd as u8) << 8;
+        let d = u64::from(rs1 as u8) << 32;
+        let e = u64::from(vs2 as u8) << 32;
+        let f = if vm { 1u64 << 28 } else { 0 };
+        VXtype(a | b | c | d | e | f)
+    }
+
+    pub fn op(self) -> InstructionOpcode {
+        ((self.0 >> 16 << 8) | (self.0 & 0xFF)) as InstructionOpcode
+    }
+
+    pub fn vd(self) -> RegisterIndex {
+        (self.0 >> 8) as u8 as RegisterIndex
+    }
+
+    pub fn rs1(self) -> RegisterIndex {
+        (self.0 >> 32) as u8 as RegisterIndex
+    }
+
+    pub fn vs2(self) -> RegisterIndex {
+        (self.0 >> 40) as u8 as RegisterIndex
+    }
+
+    pub fn vm(self) -> bool {
+        self.0 & 1u64 << 28 != 0
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
 pub struct VItype(pub Instruction);
 
 impl VItype {
@@ -339,48 +380,6 @@ impl VItype {
 
     pub fn vm(self) -> bool {
         self.0 & 1u64 << 28 != 0
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct Rutype(pub Instruction);
-
-impl Rutype {
-    pub fn new(
-        op: InstructionOpcode,
-        rd: RegisterIndex,
-        rs1: RegisterIndex,
-        rs2: RegisterIndex,
-        immediate_u: UImmediate,
-    ) -> Self {
-        Rutype(
-            (u64::from(op) >> 8 << 16)
-                | u64::from(op as u8)
-                | (u64::from(rd as u8) << 8)
-                | (u64::from(rs1 as u8) << 32)
-                | (u64::from(rs2 as u8) << 40)
-                | (u64::from(immediate_u) << 48),
-        )
-    }
-
-    pub fn op(self) -> InstructionOpcode {
-        ((self.0 >> 16 << 8) | (self.0 & 0xFF)) as InstructionOpcode
-    }
-
-    pub fn rd(self) -> RegisterIndex {
-        (self.0 >> 8) as u8 as RegisterIndex
-    }
-
-    pub fn rs1(self) -> RegisterIndex {
-        (self.0 >> 32) as u8 as RegisterIndex
-    }
-
-    pub fn rs2(self) -> RegisterIndex {
-        (self.0 >> 40) as u8 as RegisterIndex
-    }
-
-    pub fn u(self) -> UImmediate {
-        (self.0 >> 48) as u32
     }
 }
 

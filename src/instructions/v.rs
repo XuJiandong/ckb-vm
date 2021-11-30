@@ -2,7 +2,7 @@ use ckb_vm_definitions::instructions as insts;
 
 use super::utils::{self, funct3, opcode, rd, rs1, rs2};
 use super::{
-    set_instruction_length_4, Instruction, Itype, Register, Rtype, Rutype, VItype, VVtype,
+    set_instruction_length_4, Instruction, Itype, Register, Rtype, VItype, VVtype, VXtype,
 };
 
 // vle8_v     ... 000 . 00000 ..... 000 ..... 0000111 @r2_nfvm
@@ -576,12 +576,12 @@ pub fn factory<R: Register>(instruction_bits: u32, _: u32) -> Option<Instruction
                     _ => None,
                 };
                 inst_opt.map(|inst| {
-                    Rutype::new(
+                    VXtype::new(
                         inst,
                         rd(instruction_bits),
                         rs1(instruction_bits),
                         rs2(instruction_bits),
-                        vm(instruction_bits) as u32,
+                        vm(instruction_bits),
                     )
                     .0
                 })
@@ -594,12 +594,12 @@ pub fn factory<R: Register>(instruction_bits: u32, _: u32) -> Option<Instruction
                     _ => None,
                 };
                 inst_opt.map(|inst| {
-                    Rutype::new(
+                    VXtype::new(
                         inst,
                         rd(instruction_bits),
                         rs1(instruction_bits),
                         rs2(instruction_bits),
-                        vm(instruction_bits) as u32,
+                        vm(instruction_bits),
                     )
                     .0
                 })

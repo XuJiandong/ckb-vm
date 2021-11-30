@@ -2,8 +2,8 @@ use super::{
     super::{machine::Machine, Error},
     common, extract_opcode, instruction_length,
     utils::update_register,
-    Instruction, Itype, R4type, Register, Rtype, Stype, Utype, VItype, VRegister, VVtype, U1024,
-    U256, U512,
+    Instruction, Itype, R4type, Register, Rtype, Stype, Utype, VItype, VRegister, VVtype, VXtype,
+    U1024, U256, U512,
 };
 use crate::instructions::v_register::{
     vfunc_add_vi, vfunc_add_vv, vfunc_add_vx, vfunc_divu_vv, vfunc_divu_vx, vfunc_mseq_vi,
@@ -1239,7 +1239,7 @@ pub fn execute_instruction<Mac: Machine>(
             }
         }
         insts::OP_VADD_VX => {
-            let i = Rtype(inst);
+            let i = VXtype(inst);
             let vlmax = VLEN / machine.get_vsew();
             for j in 0..((machine.get_vl() - 1) / vlmax) + 1 {
                 let num = if machine.get_vl() > vlmax {
@@ -1248,8 +1248,8 @@ pub fn execute_instruction<Mac: Machine>(
                     machine.get_vl()
                 };
                 let rs1 = machine.registers()[i.rs1() as usize + j as usize].to_u64();
-                let vs2 = machine.vregisters()[i.rs2() as usize + j as usize];
-                let mut vd = machine.get_vregister(i.rd() + j as usize);
+                let vs2 = machine.vregisters()[i.vs2() as usize + j as usize];
+                let mut vd = machine.get_vregister(i.vd() + j as usize);
                 vfunc_add_vx(&vs2, rs1, &mut vd, num as usize)?;
             }
         }
@@ -1284,7 +1284,7 @@ pub fn execute_instruction<Mac: Machine>(
             }
         }
         insts::OP_VSUB_VX => {
-            let i = Rtype(inst);
+            let i = VXtype(inst);
             let vlmax = VLEN / machine.get_vsew();
             for j in 0..((machine.get_vl() - 1) / vlmax) + 1 {
                 let num = if machine.get_vl() > vlmax {
@@ -1293,8 +1293,8 @@ pub fn execute_instruction<Mac: Machine>(
                     machine.get_vl()
                 };
                 let rs1 = machine.registers()[i.rs1() as usize + j as usize].to_u64();
-                let vs2 = machine.vregisters()[i.rs2() as usize + j as usize];
-                let mut vd = machine.get_vregister(i.rd() + j as usize);
+                let vs2 = machine.vregisters()[i.vs2() as usize + j as usize];
+                let mut vd = machine.get_vregister(i.vd() + j as usize);
                 vfunc_sub_vx(&vs2, rs1, &mut vd, num as usize)?;
             }
         }
@@ -1344,7 +1344,7 @@ pub fn execute_instruction<Mac: Machine>(
             }
         }
         insts::OP_VMUL_VX => {
-            let i = Rtype(inst);
+            let i = VXtype(inst);
             let vlmax = VLEN / machine.get_vsew();
             for j in 0..((machine.get_vl() - 1) / vlmax) + 1 {
                 let num = if machine.get_vl() > vlmax {
@@ -1353,8 +1353,8 @@ pub fn execute_instruction<Mac: Machine>(
                     machine.get_vl()
                 };
                 let rs1 = machine.registers()[i.rs1() as usize + j as usize].to_u64();
-                let vs2 = machine.vregisters()[i.rs2() as usize + j as usize];
-                let mut vd = machine.get_vregister(i.rd() + j as usize);
+                let vs2 = machine.vregisters()[i.vs2() as usize + j as usize];
+                let mut vd = machine.get_vregister(i.vd() + j as usize);
                 vfunc_mul_vx(&vs2, rs1, &mut vd, num as usize)?;
             }
         }
@@ -1374,7 +1374,7 @@ pub fn execute_instruction<Mac: Machine>(
             }
         }
         insts::OP_VDIVU_VX => {
-            let i = Rtype(inst);
+            let i = VXtype(inst);
             let vlmax = VLEN / machine.get_vsew();
             for j in 0..((machine.get_vl() - 1) / vlmax) + 1 {
                 let num = if machine.get_vl() > vlmax {
@@ -1383,8 +1383,8 @@ pub fn execute_instruction<Mac: Machine>(
                     machine.get_vl()
                 };
                 let rs1 = machine.registers()[i.rs1() as usize + j as usize].to_u64();
-                let vs2 = machine.vregisters()[i.rs2() as usize + j as usize];
-                let mut vd = machine.get_vregister(i.rd() + j as usize);
+                let vs2 = machine.vregisters()[i.vs2() as usize + j as usize];
+                let mut vd = machine.get_vregister(i.vd() + j as usize);
                 vfunc_divu_vx(&vs2, rs1, &mut vd, num as usize)?;
             }
         }
@@ -1410,7 +1410,7 @@ pub fn execute_instruction<Mac: Machine>(
             }
         }
         insts::OP_VREMU_VX => {
-            let i = Rtype(inst);
+            let i = VXtype(inst);
             let vlmax = VLEN / machine.get_vsew();
             for j in 0..((machine.get_vl() - 1) / vlmax) + 1 {
                 let num = if machine.get_vl() > vlmax {
@@ -1419,8 +1419,8 @@ pub fn execute_instruction<Mac: Machine>(
                     machine.get_vl()
                 };
                 let rs1 = machine.registers()[i.rs1() as usize + j as usize].to_u64();
-                let vs2 = machine.vregisters()[i.rs2() as usize + j as usize];
-                let mut vd = machine.get_vregister(i.rd() + j as usize);
+                let vs2 = machine.vregisters()[i.vs2() as usize + j as usize];
+                let mut vd = machine.get_vregister(i.vd() + j as usize);
                 vfunc_remu_vx(&vs2, rs1, &mut vd, num as usize)?;
             }
         }
@@ -1446,7 +1446,7 @@ pub fn execute_instruction<Mac: Machine>(
             }
         }
         insts::OP_VSLL_VX => {
-            let i = Rtype(inst);
+            let i = VXtype(inst);
             let vlmax = VLEN / machine.get_vsew();
             for j in 0..((machine.get_vl() - 1) / vlmax) + 1 {
                 let num = if machine.get_vl() > vlmax {
@@ -1455,8 +1455,8 @@ pub fn execute_instruction<Mac: Machine>(
                     machine.get_vl()
                 };
                 let rs1 = machine.registers()[i.rs1() as usize + j as usize].to_u32();
-                let vs2 = machine.vregisters()[i.rs2() as usize + j as usize];
-                let mut vd = machine.get_vregister(i.rd() + j as usize);
+                let vs2 = machine.vregisters()[i.vs2() as usize + j as usize];
+                let mut vd = machine.get_vregister(i.vd() + j as usize);
                 vfunc_sll_vi(&vs2, rs1, &mut vd, num as usize)?;
             }
         }
@@ -1491,7 +1491,7 @@ pub fn execute_instruction<Mac: Machine>(
             }
         }
         insts::OP_VSRL_VX => {
-            let i = Rtype(inst);
+            let i = VXtype(inst);
             let vlmax = VLEN / machine.get_vsew();
             for j in 0..((machine.get_vl() - 1) / vlmax) + 1 {
                 let num = if machine.get_vl() > vlmax {
@@ -1500,8 +1500,8 @@ pub fn execute_instruction<Mac: Machine>(
                     machine.get_vl()
                 };
                 let rs1 = machine.registers()[i.rs1() as usize + j as usize].to_u32();
-                let vs2 = machine.vregisters()[i.rs2() as usize + j as usize];
-                let mut vd = machine.get_vregister(i.rd() + j as usize);
+                let vs2 = machine.vregisters()[i.vs2() as usize + j as usize];
+                let mut vd = machine.get_vregister(i.vd() + j as usize);
                 vfunc_srl_vi(&vs2, rs1, &mut vd, num as usize)?;
             }
         }
@@ -1536,7 +1536,7 @@ pub fn execute_instruction<Mac: Machine>(
             }
         }
         insts::OP_VSRA_VX => {
-            let i = Rtype(inst);
+            let i = VXtype(inst);
             let vlmax = VLEN / machine.get_vsew();
             for j in 0..((machine.get_vl() - 1) / vlmax) + 1 {
                 let num = if machine.get_vl() > vlmax {
@@ -1545,8 +1545,8 @@ pub fn execute_instruction<Mac: Machine>(
                     machine.get_vl()
                 };
                 let rs1 = machine.registers()[i.rs1() as usize + j as usize].to_u32();
-                let vs2 = machine.vregisters()[i.rs2() as usize + j as usize];
-                let mut vd = machine.get_vregister(i.rd() + j as usize);
+                let vs2 = machine.vregisters()[i.vs2() as usize + j as usize];
+                let mut vd = machine.get_vregister(i.vd() + j as usize);
                 vfunc_sra_vi(&vs2, rs1, &mut vd, num as usize)?;
             }
         }
@@ -1581,7 +1581,7 @@ pub fn execute_instruction<Mac: Machine>(
             }
         }
         insts::OP_VMSEQ_VX => {
-            let i = Rtype(inst);
+            let i = VXtype(inst);
             let vlmax = VLEN / machine.get_vsew();
             for j in 0..((machine.get_vl() - 1) / vlmax) + 1 {
                 let num = if machine.get_vl() > vlmax {
@@ -1590,8 +1590,8 @@ pub fn execute_instruction<Mac: Machine>(
                     machine.get_vl()
                 };
                 let rs1 = machine.registers()[i.rs1() as usize + j as usize].to_u64();
-                let vs2 = machine.vregisters()[i.rs2() as usize + j as usize];
-                let mut vd = machine.get_vregister(i.rd() + j as usize);
+                let vs2 = machine.vregisters()[i.vs2() as usize + j as usize];
+                let mut vd = machine.get_vregister(i.vd() + j as usize);
                 vfunc_mseq_vx(&vs2, rs1, &mut vd, num as usize)?;
             }
         }
@@ -1626,7 +1626,7 @@ pub fn execute_instruction<Mac: Machine>(
             }
         }
         insts::OP_VMSNE_VX => {
-            let i = Rtype(inst);
+            let i = VXtype(inst);
             let vlmax = VLEN / machine.get_vsew();
             for j in 0..((machine.get_vl() - 1) / vlmax) + 1 {
                 let num = if machine.get_vl() > vlmax {
@@ -1635,8 +1635,8 @@ pub fn execute_instruction<Mac: Machine>(
                     machine.get_vl()
                 };
                 let rs1 = machine.registers()[i.rs1() as usize + j as usize].to_u64();
-                let vs2 = machine.vregisters()[i.rs2() as usize + j as usize];
-                let mut vd = machine.get_vregister(i.rd() + j as usize);
+                let vs2 = machine.vregisters()[i.vs2() as usize + j as usize];
+                let mut vd = machine.get_vregister(i.vd() + j as usize);
                 vfunc_msne_vx(&vs2, rs1, &mut vd, num as usize)?;
             }
         }
@@ -1671,7 +1671,7 @@ pub fn execute_instruction<Mac: Machine>(
             }
         }
         insts::OP_VMSLTU_VX => {
-            let i = Rtype(inst);
+            let i = VXtype(inst);
             let vlmax = VLEN / machine.get_vsew();
             for j in 0..((machine.get_vl() - 1) / vlmax) + 1 {
                 let num = if machine.get_vl() > vlmax {
@@ -1680,8 +1680,8 @@ pub fn execute_instruction<Mac: Machine>(
                     machine.get_vl()
                 };
                 let rs1 = machine.registers()[i.rs1() as usize + j as usize].to_u64();
-                let vs2 = machine.vregisters()[i.rs2() as usize + j as usize];
-                let mut vd = machine.get_vregister(i.rd() + j as usize);
+                let vs2 = machine.vregisters()[i.vs2() as usize + j as usize];
+                let mut vd = machine.get_vregister(i.vd() + j as usize);
                 vfunc_msltu_vx(&vs2, rs1, &mut vd, num as usize)?;
             }
         }
@@ -1707,7 +1707,7 @@ pub fn execute_instruction<Mac: Machine>(
             }
         }
         insts::OP_VMSLEU_VX => {
-            let i = Rtype(inst);
+            let i = VXtype(inst);
             let vlmax = VLEN / machine.get_vsew();
             for j in 0..((machine.get_vl() - 1) / vlmax) + 1 {
                 let num = if machine.get_vl() > vlmax {
@@ -1716,8 +1716,8 @@ pub fn execute_instruction<Mac: Machine>(
                     machine.get_vl()
                 };
                 let rs1 = machine.registers()[i.rs1() as usize + j as usize].to_u64();
-                let vs2 = machine.vregisters()[i.rs2() as usize + j as usize];
-                let mut vd = machine.get_vregister(i.rd() + j as usize);
+                let vs2 = machine.vregisters()[i.vs2() as usize + j as usize];
+                let mut vd = machine.get_vregister(i.vd() + j as usize);
                 vfunc_msleu_vx(&vs2, rs1, &mut vd, num as usize)?;
             }
         }
@@ -1747,7 +1747,7 @@ pub fn execute_instruction<Mac: Machine>(
             unreachable!()
         }
         insts::OP_VMSGTU_VX => {
-            let i = Rtype(inst);
+            let i = VXtype(inst);
             let vlmax = VLEN / machine.get_vsew();
             for j in 0..((machine.get_vl() - 1) / vlmax) + 1 {
                 let num = if machine.get_vl() > vlmax {
@@ -1756,8 +1756,8 @@ pub fn execute_instruction<Mac: Machine>(
                     machine.get_vl()
                 };
                 let rs1 = machine.registers()[i.rs1() as usize + j as usize].to_u64();
-                let vs2 = machine.vregisters()[i.rs2() as usize + j as usize];
-                let mut vd = machine.get_vregister(i.rd() + j as usize);
+                let vs2 = machine.vregisters()[i.vs2() as usize + j as usize];
+                let mut vd = machine.get_vregister(i.vd() + j as usize);
                 vfunc_msgtu_vx(&vs2, rs1, &mut vd, num as usize)?;
             }
         }
