@@ -542,6 +542,19 @@ macro_rules! uint_impl {
             }
         }
 
+        impl std::ops::Div for $name {
+            type Output = Self;
+            fn div(self, rhs: Self) -> Self::Output {
+                self.wrapping_div(rhs)
+            }
+        }
+
+        impl std::ops::DivAssign for $name {
+            fn div_assign(&mut self, rhs: Self) {
+                *self = self.wrapping_div(rhs)
+            }
+        }
+
         impl std::ops::Shl<u32> for $name {
             type Output = Self;
             fn shl(self, rhs: u32) -> Self::Output {
@@ -723,34 +736,100 @@ macro_rules! uint_impl {
                 Self { lo, hi }
             }
 
+            /// div_half_0 returns the quotient and remainder of (hi, lo) divided by y: quo = (hi, lo)/y,
+            /// rem = (hi, lo)%y with the dividend bits' upper half in parameter hi and the lower half in parameter lo.
+            /// div_half_0 panics for y == 0 (division by zero) or y <= hi (quotient overflow).
+            ///
+            /// Inspired by https://cs.opensource.google/go/go/+/refs/tags/go1.17.3:src/math/bits/bits.go;l=512
+            fn div_half_0(self, y: $half) -> ($half, $half) {
+                let twos = <$half>::ONE << (Self::BITS / 4);
+                let mask = twos - <$half>::ONE;
+                assert!(y != <$half>::MIN);
+                assert!(y > self.hi);
+                let s = y.leading_zeros();
+                let y = y << s;
+                let yn1 = y >> (Self::BITS / 4);
+                let yn0 = y & mask;
+                let un32 = (self.hi << s) | (self.lo >> (Self::BITS / 2 - s));
+                let un10 = self.lo << s;
+                let un1 = un10 >> (Self::BITS / 4);
+                let un0 = un10 & mask;
+                let mut q1 = un32 / yn1;
+                let mut rhat = un32 - q1 * yn1;
+                while q1 >= twos || q1 * yn0 > twos * rhat + un1 {
+                    q1 -= <$half>::ONE;
+                    rhat += yn1;
+                    if rhat >= twos {
+                        break;
+                    }
+                }
+                let un21 = un32 * twos + un1 - q1 * y;
+                let mut q0 = un21 / yn1;
+                rhat = un21 - q0 * yn1;
+                while q0 >= twos || q0 * yn0 > twos * rhat + un0 {
+                    q0 -= <$half>::ONE;
+                    rhat += yn1;
+                    if rhat >= twos {
+                        break;
+                    }
+                }
+                (q1 * twos + q0, (un21 * twos + un0 - q0 * y) >> s)
+            }
+
+            fn div_half_1(self, y: $half) -> (Self, $half) {
+                if self.hi < y {
+                    let (lo, r) = self.div_half_0(y);
+                    (Self::from(lo), r)
+                } else {
+                    let (hi, r) = Self::from(self.hi).div_half_0(y);
+                    let (lo, r) = Self { hi: r, lo: self.lo }.div_half_0(y);
+                    (Self { lo: lo, hi: hi }, r)
+                }
+            }
+
+            /// Inspired by https://github.com/Pilatuz/bigx/blob/8615506d17c5/uint128.go#L291
+            fn div(self, rhs: Self) -> (Self, Self) {
+                if rhs.hi == <$half>::MIN {
+                    let (q, r) = self.div_half_1(rhs.lo);
+                    return (q, Self::from(r));
+                }
+                let n = rhs.hi.leading_zeros();
+                let u1 = self >> 1;
+                let v1 = self << n;
+                let (tq, _) = u1.div_half_0(v1.hi);
+                let mut tq = tq >> ((Self::BITS / 2 - 1) - n);
+                if tq != <$half>::MIN {
+                    tq -= <$half>::ONE;
+                }
+                let mut q = Self::from(tq);
+                let mut r = self - rhs * q;
+                if r >= rhs {
+                    q += Self::ONE;
+                    r = r - rhs;
+                }
+                (q, r)
+            }
+
             /// Wrapping (modular) division. Computes self / rhs. Wrapped division on unsigned types is just normal
             /// division. There’s no way wrapping could ever happen. This function exists, so that all operations are
             /// accounted for in the wrapping operations.
             pub fn wrapping_div(self, rhs: Self) -> Self {
-                if rhs == <$name>::MIN {
-                    return <$name>::MAX;
+                if rhs == Self::MIN {
+                    Self::MAX
+                } else {
+                    self.div(rhs).0
                 }
-                let lhs = internal::$name::from_little_endian(&self.to_le_bytes());
-                let rhs = internal::$name::from_little_endian(&rhs.to_le_bytes());
-                let r = lhs / rhs;
-                let mut b = [0u8; (Self::BITS / 8) as usize];
-                r.to_little_endian(&mut b);
-                Self::from_le_bytes(b)
             }
 
             /// Wrapping (modular) remainder. Computes self % rhs. Wrapped remainder calculation on unsigned types is
             /// just the regular remainder calculation. There’s no way wrapping could ever happen. This function exists,
             /// so that all operations are accounted for in the wrapping operations.
             pub fn wrapping_rem(self, rhs: Self) -> Self {
-                if rhs == <$name>::MIN {
-                    return self;
+                if rhs == Self::MIN {
+                    self
+                } else {
+                    self.div(rhs).1
                 }
-                let lhs = internal::$name::from_little_endian(&self.to_le_bytes());
-                let rhs = internal::$name::from_little_endian(&rhs.to_le_bytes());
-                let r = lhs % rhs;
-                let mut b = [0u8; (Self::BITS / 8) as usize];
-                r.to_little_endian(&mut b);
-                Self::from_le_bytes(b)
             }
 
             /// Panic-free bitwise shift-left; yields self << mask(rhs), where mask removes any high-order bits of rhs
