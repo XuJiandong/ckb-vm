@@ -1004,6 +1004,65 @@ uint_impl_from_i!(U1024, U512, i32);
 uint_impl_from_i!(U1024, U512, i64);
 uint_impl_from_i!(U1024, U512, i128);
 
+macro_rules! sint_impl {
+    ($name:ident, $uint:ty) => {
+        #[derive(Copy, Clone, Default, PartialEq, Eq)]
+        pub struct $name {
+            pub uint: $uint,
+        }
+
+        impl std::convert::From<$uint> for $name {
+            fn from(uint: $uint) -> Self {
+                Self { uint }
+            }
+        }
+
+        impl std::cmp::PartialOrd for $name {
+            fn partial_cmp(&self, rhs: &Self) -> Option<std::cmp::Ordering> {
+                Some(self.cmp(rhs))
+            }
+        }
+
+        impl std::cmp::Ord for $name {
+            fn cmp(&self, rhs: &Self) -> std::cmp::Ordering {
+                let lhssign = self.uint.is_negative();
+                let rhssign = rhs.uint.is_negative();
+                match (lhssign, rhssign) {
+                    (false, false) => self.uint.cmp(&rhs.uint),
+                    (false, true) => std::cmp::Ordering::Greater,
+                    (true, false) => std::cmp::Ordering::Less,
+                    (true, true) => rhs.uint.cmp(&self.uint),
+                }
+            }
+        }
+
+        impl $name {
+            /// Panic-free bitwise shift-left; yields self << mask(rhs), where mask removes any high-order bits of rhs
+            /// that would cause the shift to exceed the bitwidth of the type.
+            ///
+            /// Note that this is not the same as a rotate-left; the RHS of a wrapping shift-left is restricted to the
+            /// range of the type, rather than the bits shifted out of the LHS being returned to the other end. The
+            /// primitive integer types all implement a rotate_left function, which may be what you want instead.
+            pub fn wrapping_shl(self, rhs: u32) -> Self {
+                Self {
+                    uint: self.uint.wrapping_shl(rhs),
+                }
+            }
+
+            /// Panic-free bitwise sign shift-right.
+            pub fn wrapping_shr(self, rhs: u32) -> Self {
+                Self {
+                    uint: self.uint.wrapping_sra(rhs),
+                }
+            }
+        }
+    };
+}
+
+sint_impl!(I256, U256);
+sint_impl!(I512, U512);
+sint_impl!(I1024, U1024);
+
 mod internal {
     use uint::construct_uint;
 
