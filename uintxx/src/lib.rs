@@ -1031,7 +1031,7 @@ macro_rules! sint_impl {
                     (false, false) => self.uint.cmp(&rhs.uint),
                     (false, true) => std::cmp::Ordering::Greater,
                     (true, false) => std::cmp::Ordering::Less,
-                    (true, true) => rhs.uint.cmp(&self.uint),
+                    (true, true) => self.uint.cmp(&rhs.uint),
                 }
             }
         }

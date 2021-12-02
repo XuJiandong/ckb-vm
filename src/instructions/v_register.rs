@@ -1016,29 +1016,17 @@ pub fn vfunc_mseq_vv(
     match (lhs, rhs, result) {
         (VRegister::U1024(a), VRegister::U1024(b), VRegister::U1024(ref mut r)) => {
             for i in 0..num {
-                r[i] = if a[i] == b[i] {
-                    U1024::from(1u32)
-                } else {
-                    U1024::MIN
-                };
+                r[i] = if a[i] == b[i] { U1024::ONE } else { U1024::MIN };
             }
         }
         (VRegister::U512(a), VRegister::U512(b), VRegister::U512(ref mut r)) => {
             for i in 0..num {
-                r[i] = if a[i] == b[i] {
-                    U512::from(1u32)
-                } else {
-                    U512::MIN
-                };
+                r[i] = if a[i] == b[i] { U512::ONE } else { U512::MIN };
             }
         }
         (VRegister::U256(a), VRegister::U256(b), VRegister::U256(ref mut r)) => {
             for i in 0..num {
-                r[i] = if a[i] == b[i] {
-                    U256::from(1u32)
-                } else {
-                    U256::MIN
-                };
+                r[i] = if a[i] == b[i] { U256::ONE } else { U256::MIN };
             }
         }
         (VRegister::U128(a), VRegister::U128(b), VRegister::U128(ref mut r)) => {
@@ -1081,7 +1069,7 @@ pub fn vfunc_mseq_vx(
         (VRegister::U1024(a), VRegister::U1024(ref mut r)) => {
             for i in 0..num {
                 r[i] = if a[i] == U1024::from(rhs as i64) {
-                    U1024::from(1u32)
+                    U1024::ONE
                 } else {
                     U1024::MIN
                 };
@@ -1090,7 +1078,7 @@ pub fn vfunc_mseq_vx(
         (VRegister::U512(a), VRegister::U512(ref mut r)) => {
             for i in 0..num {
                 r[i] = if a[i] == U512::from(rhs as i64) {
-                    U512::from(1u32)
+                    U512::ONE
                 } else {
                     U512::MIN
                 };
@@ -1099,7 +1087,7 @@ pub fn vfunc_mseq_vx(
         (VRegister::U256(a), VRegister::U256(ref mut r)) => {
             for i in 0..num {
                 r[i] = if a[i] == U256::from(rhs as i64) {
-                    U256::from(1u32)
+                    U256::ONE
                 } else {
                     U256::MIN
                 };
@@ -1149,7 +1137,7 @@ pub fn vfunc_mseq_vi(
         (VRegister::U1024(a), VRegister::U1024(ref mut r)) => {
             for i in 0..num {
                 r[i] = if a[i] == U1024::from(rhs) {
-                    U1024::from(1u32)
+                    U1024::ONE
                 } else {
                     U1024::MIN
                 };
@@ -1158,7 +1146,7 @@ pub fn vfunc_mseq_vi(
         (VRegister::U512(a), VRegister::U512(ref mut r)) => {
             for i in 0..num {
                 r[i] = if a[i] == U512::from(rhs) {
-                    U512::from(1u32)
+                    U512::ONE
                 } else {
                     U512::MIN
                 };
@@ -1167,7 +1155,7 @@ pub fn vfunc_mseq_vi(
         (VRegister::U256(a), VRegister::U256(ref mut r)) => {
             for i in 0..num {
                 r[i] = if a[i] == U256::from(rhs) {
-                    U256::from(1u32)
+                    U256::ONE
                 } else {
                     U256::MIN
                 };
@@ -1212,29 +1200,17 @@ pub fn vfunc_msne_vv(
     match (lhs, rhs, result) {
         (VRegister::U1024(a), VRegister::U1024(b), VRegister::U1024(ref mut r)) => {
             for i in 0..num {
-                r[i] = if a[i] != b[i] {
-                    U1024::from(1u32)
-                } else {
-                    U1024::MIN
-                };
+                r[i] = if a[i] != b[i] { U1024::ONE } else { U1024::MIN };
             }
         }
         (VRegister::U512(a), VRegister::U512(b), VRegister::U512(ref mut r)) => {
             for i in 0..num {
-                r[i] = if a[i] != b[i] {
-                    U512::from(1u32)
-                } else {
-                    U512::MIN
-                };
+                r[i] = if a[i] != b[i] { U512::ONE } else { U512::MIN };
             }
         }
         (VRegister::U256(a), VRegister::U256(b), VRegister::U256(ref mut r)) => {
             for i in 0..num {
-                r[i] = if a[i] != b[i] {
-                    U256::from(1u32)
-                } else {
-                    U256::MIN
-                };
+                r[i] = if a[i] != b[i] { U256::ONE } else { U256::MIN };
             }
         }
         (VRegister::U128(a), VRegister::U128(b), VRegister::U128(ref mut r)) => {
@@ -1277,7 +1253,7 @@ pub fn vfunc_msne_vx(
         (VRegister::U1024(a), VRegister::U1024(ref mut r)) => {
             for i in 0..num {
                 r[i] = if a[i] != U1024::from(rhs as i64) {
-                    U1024::from(1u32)
+                    U1024::ONE
                 } else {
                     U1024::MIN
                 };
@@ -1286,7 +1262,7 @@ pub fn vfunc_msne_vx(
         (VRegister::U512(a), VRegister::U512(ref mut r)) => {
             for i in 0..num {
                 r[i] = if a[i] != U512::from(rhs as i64) {
-                    U512::from(1u32)
+                    U512::ONE
                 } else {
                     U512::MIN
                 };
@@ -1295,7 +1271,7 @@ pub fn vfunc_msne_vx(
         (VRegister::U256(a), VRegister::U256(ref mut r)) => {
             for i in 0..num {
                 r[i] = if a[i] != U256::from(rhs as i64) {
-                    U256::from(1u32)
+                    U256::ONE
                 } else {
                     U256::MIN
                 };
@@ -1345,7 +1321,7 @@ pub fn vfunc_msne_vi(
         (VRegister::U1024(a), VRegister::U1024(ref mut r)) => {
             for i in 0..num {
                 r[i] = if a[i] != U1024::from(rhs) {
-                    U1024::from(1u32)
+                    U1024::ONE
                 } else {
                     U1024::MIN
                 };
@@ -1354,7 +1330,7 @@ pub fn vfunc_msne_vi(
         (VRegister::U512(a), VRegister::U512(ref mut r)) => {
             for i in 0..num {
                 r[i] = if a[i] != U512::from(rhs) {
-                    U512::from(1u32)
+                    U512::ONE
                 } else {
                     U512::MIN
                 };
@@ -1363,7 +1339,7 @@ pub fn vfunc_msne_vi(
         (VRegister::U256(a), VRegister::U256(ref mut r)) => {
             for i in 0..num {
                 r[i] = if a[i] != U256::from(rhs) {
-                    U256::from(1u32)
+                    U256::ONE
                 } else {
                     U256::MIN
                 };
@@ -1408,29 +1384,17 @@ pub fn vfunc_msltu_vv(
     match (lhs, rhs, result) {
         (VRegister::U1024(a), VRegister::U1024(b), VRegister::U1024(ref mut r)) => {
             for i in 0..num {
-                r[i] = if a[i] < b[i] {
-                    U1024::from(1u32)
-                } else {
-                    U1024::MIN
-                };
+                r[i] = if a[i] < b[i] { U1024::ONE } else { U1024::MIN };
             }
         }
         (VRegister::U512(a), VRegister::U512(b), VRegister::U512(ref mut r)) => {
             for i in 0..num {
-                r[i] = if a[i] < b[i] {
-                    U512::from(1u32)
-                } else {
-                    U512::MIN
-                };
+                r[i] = if a[i] < b[i] { U512::ONE } else { U512::MIN };
             }
         }
         (VRegister::U256(a), VRegister::U256(b), VRegister::U256(ref mut r)) => {
             for i in 0..num {
-                r[i] = if a[i] < b[i] {
-                    U256::from(1u32)
-                } else {
-                    U256::MIN
-                };
+                r[i] = if a[i] < b[i] { U256::ONE } else { U256::MIN };
             }
         }
         (VRegister::U128(a), VRegister::U128(b), VRegister::U128(ref mut r)) => {
@@ -1473,7 +1437,7 @@ pub fn vfunc_msltu_vx(
         (VRegister::U1024(a), VRegister::U1024(ref mut r)) => {
             for i in 0..num {
                 r[i] = if a[i] < U1024::from(rhs) {
-                    U1024::from(1u32)
+                    U1024::ONE
                 } else {
                     U1024::MIN
                 };
@@ -1482,7 +1446,7 @@ pub fn vfunc_msltu_vx(
         (VRegister::U512(a), VRegister::U512(ref mut r)) => {
             for i in 0..num {
                 r[i] = if a[i] < U512::from(rhs) {
-                    U512::from(1u32)
+                    U512::ONE
                 } else {
                     U512::MIN
                 };
@@ -1491,7 +1455,7 @@ pub fn vfunc_msltu_vx(
         (VRegister::U256(a), VRegister::U256(ref mut r)) => {
             for i in 0..num {
                 r[i] = if a[i] < U256::from(rhs) {
-                    U256::from(1u32)
+                    U256::ONE
                 } else {
                     U256::MIN
                 };
@@ -1536,29 +1500,17 @@ pub fn vfunc_msleu_vv(
     match (lhs, rhs, result) {
         (VRegister::U1024(a), VRegister::U1024(b), VRegister::U1024(ref mut r)) => {
             for i in 0..num {
-                r[i] = if a[i] <= b[i] {
-                    U1024::from(1u32)
-                } else {
-                    U1024::MIN
-                };
+                r[i] = if a[i] <= b[i] { U1024::ONE } else { U1024::MIN };
             }
         }
         (VRegister::U512(a), VRegister::U512(b), VRegister::U512(ref mut r)) => {
             for i in 0..num {
-                r[i] = if a[i] <= b[i] {
-                    U512::from(1u32)
-                } else {
-                    U512::MIN
-                };
+                r[i] = if a[i] <= b[i] { U512::ONE } else { U512::MIN };
             }
         }
         (VRegister::U256(a), VRegister::U256(b), VRegister::U256(ref mut r)) => {
             for i in 0..num {
-                r[i] = if a[i] <= b[i] {
-                    U256::from(1u32)
-                } else {
-                    U256::MIN
-                };
+                r[i] = if a[i] <= b[i] { U256::ONE } else { U256::MIN };
             }
         }
         (VRegister::U128(a), VRegister::U128(b), VRegister::U128(ref mut r)) => {
@@ -1601,7 +1553,7 @@ pub fn vfunc_msleu_vx(
         (VRegister::U1024(a), VRegister::U1024(ref mut r)) => {
             for i in 0..num {
                 r[i] = if a[i] <= U1024::from(rhs as i64) {
-                    U1024::from(1u32)
+                    U1024::ONE
                 } else {
                     U1024::MIN
                 };
@@ -1610,7 +1562,7 @@ pub fn vfunc_msleu_vx(
         (VRegister::U512(a), VRegister::U512(ref mut r)) => {
             for i in 0..num {
                 r[i] = if a[i] <= U512::from(rhs as i64) {
-                    U512::from(1u32)
+                    U512::ONE
                 } else {
                     U512::MIN
                 };
@@ -1619,7 +1571,7 @@ pub fn vfunc_msleu_vx(
         (VRegister::U256(a), VRegister::U256(ref mut r)) => {
             for i in 0..num {
                 r[i] = if a[i] <= U256::from(rhs as i64) {
-                    U256::from(1u32)
+                    U256::ONE
                 } else {
                     U256::MIN
                 };
@@ -1669,7 +1621,7 @@ pub fn vfunc_msleu_vi(
         (VRegister::U1024(a), VRegister::U1024(ref mut r)) => {
             for i in 0..num {
                 r[i] = if a[i] <= U1024::from(rhs) {
-                    U1024::from(1u32)
+                    U1024::ONE
                 } else {
                     U1024::MIN
                 };
@@ -1678,7 +1630,7 @@ pub fn vfunc_msleu_vi(
         (VRegister::U512(a), VRegister::U512(ref mut r)) => {
             for i in 0..num {
                 r[i] = if a[i] <= U512::from(rhs) {
-                    U512::from(1u32)
+                    U512::ONE
                 } else {
                     U512::MIN
                 };
@@ -1687,7 +1639,7 @@ pub fn vfunc_msleu_vi(
         (VRegister::U256(a), VRegister::U256(ref mut r)) => {
             for i in 0..num {
                 r[i] = if a[i] <= U256::from(rhs) {
-                    U256::from(1u32)
+                    U256::ONE
                 } else {
                     U256::MIN
                 };
@@ -1733,7 +1685,7 @@ pub fn vfunc_msgtu_vx(
         (VRegister::U1024(a), VRegister::U1024(ref mut r)) => {
             for i in 0..num {
                 r[i] = if a[i] > U1024::from(rhs as i64) {
-                    U1024::from(1u32)
+                    U1024::ONE
                 } else {
                     U1024::MIN
                 };
@@ -1742,7 +1694,7 @@ pub fn vfunc_msgtu_vx(
         (VRegister::U512(a), VRegister::U512(ref mut r)) => {
             for i in 0..num {
                 r[i] = if a[i] > U512::from(rhs as i64) {
-                    U512::from(1u32)
+                    U512::ONE
                 } else {
                     U512::MIN
                 };
@@ -1751,7 +1703,7 @@ pub fn vfunc_msgtu_vx(
         (VRegister::U256(a), VRegister::U256(ref mut r)) => {
             for i in 0..num {
                 r[i] = if a[i] > U256::from(rhs as i64) {
-                    U256::from(1u32)
+                    U256::ONE
                 } else {
                     U256::MIN
                 };
@@ -1801,7 +1753,7 @@ pub fn vfunc_msgtu_vi(
         (VRegister::U1024(a), VRegister::U1024(ref mut r)) => {
             for i in 0..num {
                 r[i] = if a[i] > U1024::from(rhs) {
-                    U1024::from(1u32)
+                    U1024::ONE
                 } else {
                     U1024::MIN
                 };
@@ -1810,7 +1762,7 @@ pub fn vfunc_msgtu_vi(
         (VRegister::U512(a), VRegister::U512(ref mut r)) => {
             for i in 0..num {
                 r[i] = if a[i] > U512::from(rhs) {
-                    U512::from(1u32)
+                    U512::ONE
                 } else {
                     U512::MIN
                 };
@@ -1819,7 +1771,7 @@ pub fn vfunc_msgtu_vi(
         (VRegister::U256(a), VRegister::U256(ref mut r)) => {
             for i in 0..num {
                 r[i] = if a[i] > U256::from(rhs) {
-                    U256::from(1u32)
+                    U256::ONE
                 } else {
                     U256::MIN
                 };
@@ -1865,7 +1817,7 @@ pub fn vfunc_msgt_vx(
         (VRegister::U1024(a), VRegister::U1024(ref mut r)) => {
             for i in 0..num {
                 r[i] = if I1024::from(a[i]) > I1024::from(U1024::from(rhs as i64)) {
-                    U1024::from(1u32)
+                    U1024::ONE
                 } else {
                     U1024::MIN
                 };
@@ -1874,7 +1826,7 @@ pub fn vfunc_msgt_vx(
         (VRegister::U512(a), VRegister::U512(ref mut r)) => {
             for i in 0..num {
                 r[i] = if I512::from(a[i]) > I512::from(U512::from(rhs as i64)) {
-                    U512::from(1u32)
+                    U512::ONE
                 } else {
                     U512::MIN
                 };
@@ -1883,7 +1835,7 @@ pub fn vfunc_msgt_vx(
         (VRegister::U256(a), VRegister::U256(ref mut r)) => {
             for i in 0..num {
                 r[i] = if I256::from(a[i]) > I256::from(U256::from(rhs as i64)) {
-                    U256::from(1u32)
+                    U256::ONE
                 } else {
                     U256::MIN
                 };
@@ -1941,7 +1893,7 @@ pub fn vfunc_msgt_vi(
         (VRegister::U1024(a), VRegister::U1024(ref mut r)) => {
             for i in 0..num {
                 r[i] = if I1024::from(a[i]) > I1024::from(U1024::from(rhs)) {
-                    U1024::from(1u32)
+                    U1024::ONE
                 } else {
                     U1024::MIN
                 };
@@ -1950,7 +1902,7 @@ pub fn vfunc_msgt_vi(
         (VRegister::U512(a), VRegister::U512(ref mut r)) => {
             for i in 0..num {
                 r[i] = if I512::from(a[i]) > I512::from(U512::from(rhs)) {
-                    U512::from(1u32)
+                    U512::ONE
                 } else {
                     U512::MIN
                 };
@@ -1959,7 +1911,7 @@ pub fn vfunc_msgt_vi(
         (VRegister::U256(a), VRegister::U256(ref mut r)) => {
             for i in 0..num {
                 r[i] = if I256::from(a[i]) > I256::from(U256::from(rhs)) {
-                    U256::from(1u32)
+                    U256::ONE
                 } else {
                     U256::MIN
                 };
@@ -1988,6 +1940,74 @@ pub fn vfunc_msgt_vi(
         (VRegister::U8(a), VRegister::U8(ref mut r)) => {
             for i in 0..num {
                 r[i] = if a[i] as i8 > rhs as i8 { 1 } else { 0 };
+            }
+        }
+        _ => return Err(Error::Unexpected),
+    }
+    Ok(())
+}
+
+pub fn vfunc_mslt_vv(
+    lhs: &VRegister,
+    rhs: &VRegister,
+    result: &mut VRegister,
+    num: usize,
+) -> Result<(), Error> {
+    match (lhs, rhs, result) {
+        (VRegister::U1024(a), VRegister::U1024(b), VRegister::U1024(ref mut r)) => {
+            for i in 0..num {
+                r[i] = if I1024::from(a[i]) < I1024::from(b[i]) {
+                    U1024::ONE
+                } else {
+                    U1024::MIN
+                };
+            }
+        }
+        (VRegister::U512(a), VRegister::U512(b), VRegister::U512(ref mut r)) => {
+            for i in 0..num {
+                r[i] = if I512::from(a[i]) < I512::from(b[i]) {
+                    U512::ONE
+                } else {
+                    U512::MIN
+                };
+            }
+        }
+        (VRegister::U256(a), VRegister::U256(b), VRegister::U256(ref mut r)) => {
+            for i in 0..num {
+                r[i] = if I256::from(a[i]) < I256::from(b[i]) {
+                    U256::ONE
+                } else {
+                    U256::MIN
+                };
+            }
+        }
+        (VRegister::U128(a), VRegister::U128(b), VRegister::U128(ref mut r)) => {
+            for i in 0..num {
+                r[i] = if (a[i] as i128) < (b[i] as i128) {
+                    1
+                } else {
+                    0
+                };
+            }
+        }
+        (VRegister::U64(a), VRegister::U64(b), VRegister::U64(ref mut r)) => {
+            for i in 0..num {
+                r[i] = if (a[i] as i64) < (b[i] as i64) { 1 } else { 0 };
+            }
+        }
+        (VRegister::U32(a), VRegister::U32(b), VRegister::U32(ref mut r)) => {
+            for i in 0..num {
+                r[i] = if (a[i] as i32) < (b[i] as i32) { 1 } else { 0 };
+            }
+        }
+        (VRegister::U16(a), VRegister::U16(b), VRegister::U16(ref mut r)) => {
+            for i in 0..num {
+                r[i] = if (a[i] as i16) < (b[i] as i16) { 1 } else { 0 };
+            }
+        }
+        (VRegister::U8(a), VRegister::U8(b), VRegister::U8(ref mut r)) => {
+            for i in 0..num {
+                r[i] = if (a[i] as i8) < (b[i] as i8) { 1 } else { 0 };
             }
         }
         _ => return Err(Error::Unexpected),
