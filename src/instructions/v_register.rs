@@ -2014,3 +2014,83 @@ pub fn vfunc_mslt_vv(
     }
     Ok(())
 }
+
+pub fn vfunc_mslt_vx(
+    lhs: &VRegister,
+    rhs: u64,
+    result: &mut VRegister,
+    num: usize,
+) -> Result<(), Error> {
+    match (lhs, result) {
+        (VRegister::U1024(a), VRegister::U1024(ref mut r)) => {
+            for i in 0..num {
+                r[i] = if I1024::from(a[i]) < I1024::from(U1024::from(rhs as i64)) {
+                    U1024::ONE
+                } else {
+                    U1024::MIN
+                };
+            }
+        }
+        (VRegister::U512(a), VRegister::U512(ref mut r)) => {
+            for i in 0..num {
+                r[i] = if I512::from(a[i]) < I512::from(U512::from(rhs as i64)) {
+                    U512::ONE
+                } else {
+                    U512::MIN
+                };
+            }
+        }
+        (VRegister::U256(a), VRegister::U256(ref mut r)) => {
+            for i in 0..num {
+                r[i] = if I256::from(a[i]) < I256::from(U256::from(rhs as i64)) {
+                    U256::ONE
+                } else {
+                    U256::MIN
+                };
+            }
+        }
+        (VRegister::U128(a), VRegister::U128(ref mut r)) => {
+            for i in 0..num {
+                r[i] = if (a[i] as i128) < (rhs as i64 as i128) {
+                    1
+                } else {
+                    0
+                };
+            }
+        }
+        (VRegister::U64(a), VRegister::U64(ref mut r)) => {
+            for i in 0..num {
+                r[i] = if (a[i] as i64) < (rhs as i64) { 1 } else { 0 };
+            }
+        }
+        (VRegister::U32(a), VRegister::U32(ref mut r)) => {
+            for i in 0..num {
+                r[i] = if (a[i] as i32) < (rhs as u32 as i32) {
+                    1
+                } else {
+                    0
+                };
+            }
+        }
+        (VRegister::U16(a), VRegister::U16(ref mut r)) => {
+            for i in 0..num {
+                r[i] = if (a[i] as i16) < (rhs as u16 as i16) {
+                    1
+                } else {
+                    0
+                };
+            }
+        }
+        (VRegister::U8(a), VRegister::U8(ref mut r)) => {
+            for i in 0..num {
+                r[i] = if (a[i] as i8) < (rhs as u8 as i8) {
+                    1
+                } else {
+                    0
+                };
+            }
+        }
+        _ => return Err(Error::Unexpected),
+    }
+    Ok(())
+}
