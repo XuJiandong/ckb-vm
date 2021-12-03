@@ -2388,3 +2388,61 @@ pub fn vfunc_div_vv(
     }
     Ok(())
 }
+
+pub fn vfunc_div_vx(
+    lhs: &VRegister,
+    rhs: u64,
+    result: &mut VRegister,
+    num: usize,
+) -> Result<(), Error> {
+    match (lhs, result) {
+        (VRegister::U1024(a), VRegister::U1024(ref mut r)) => {
+            for i in 0..num {
+                r[i] = I1024::from(a[i])
+                    .wrapping_div(I1024::from(U1024::from(rhs as i64)))
+                    .uint;
+            }
+        }
+        (VRegister::U512(a), VRegister::U512(ref mut r)) => {
+            for i in 0..num {
+                r[i] = I512::from(a[i])
+                    .wrapping_div(I512::from(U512::from(rhs as i64)))
+                    .uint;
+            }
+        }
+        (VRegister::U256(a), VRegister::U256(ref mut r)) => {
+            for i in 0..num {
+                r[i] = I256::from(a[i])
+                    .wrapping_div(I256::from(U256::from(rhs as i64)))
+                    .uint;
+            }
+        }
+        (VRegister::U128(a), VRegister::U128(ref mut r)) => {
+            for i in 0..num {
+                r[i] = (a[i] as i128).wrapping_div(rhs as i128) as u128;
+            }
+        }
+        (VRegister::U64(a), VRegister::U64(ref mut r)) => {
+            for i in 0..num {
+                r[i] = (a[i] as i64).wrapping_div(rhs as i64) as u64;
+            }
+        }
+        (VRegister::U32(a), VRegister::U32(ref mut r)) => {
+            for i in 0..num {
+                r[i] = (a[i] as i32).wrapping_div(rhs as u32 as i32) as u32;
+            }
+        }
+        (VRegister::U16(a), VRegister::U16(ref mut r)) => {
+            for i in 0..num {
+                r[i] = (a[i] as i16).wrapping_div(rhs as u16 as i16) as u16;
+            }
+        }
+        (VRegister::U8(a), VRegister::U8(ref mut r)) => {
+            for i in 0..num {
+                r[i] = (a[i] as i8).wrapping_div(rhs as u8 as i8) as u8;
+            }
+        }
+        _ => return Err(Error::Unexpected),
+    }
+    Ok(())
+}

@@ -6,13 +6,13 @@ use super::{
     U1024, U256, U512,
 };
 use crate::instructions::v_register::{
-    vfunc_add_vi, vfunc_add_vv, vfunc_add_vx, vfunc_div_vv, vfunc_divu_vv, vfunc_divu_vx,
-    vfunc_mseq_vi, vfunc_mseq_vv, vfunc_mseq_vx, vfunc_msgt_vi, vfunc_msgt_vx, vfunc_msgtu_vi,
-    vfunc_msgtu_vx, vfunc_msle_vi, vfunc_msle_vv, vfunc_msle_vx, vfunc_msleu_vi, vfunc_msleu_vv,
-    vfunc_msleu_vx, vfunc_mslt_vv, vfunc_mslt_vx, vfunc_msltu_vv, vfunc_msltu_vx, vfunc_msne_vi,
-    vfunc_msne_vv, vfunc_msne_vx, vfunc_mul_vv, vfunc_mul_vx, vfunc_remu_vv, vfunc_remu_vx,
-    vfunc_rsub_vi, vfunc_rsub_vx, vfunc_sll_vi, vfunc_sll_vv, vfunc_sra_vi, vfunc_sra_vv,
-    vfunc_srl_vi, vfunc_srl_vv, vfunc_sub_vv, vfunc_sub_vx,
+    vfunc_add_vi, vfunc_add_vv, vfunc_add_vx, vfunc_div_vv, vfunc_div_vx, vfunc_divu_vv,
+    vfunc_divu_vx, vfunc_mseq_vi, vfunc_mseq_vv, vfunc_mseq_vx, vfunc_msgt_vi, vfunc_msgt_vx,
+    vfunc_msgtu_vi, vfunc_msgtu_vx, vfunc_msle_vi, vfunc_msle_vv, vfunc_msle_vx, vfunc_msleu_vi,
+    vfunc_msleu_vv, vfunc_msleu_vx, vfunc_mslt_vv, vfunc_mslt_vx, vfunc_msltu_vv, vfunc_msltu_vx,
+    vfunc_msne_vi, vfunc_msne_vv, vfunc_msne_vx, vfunc_mul_vv, vfunc_mul_vx, vfunc_remu_vv,
+    vfunc_remu_vx, vfunc_rsub_vi, vfunc_rsub_vx, vfunc_sll_vi, vfunc_sll_vv, vfunc_sra_vi,
+    vfunc_sra_vv, vfunc_srl_vi, vfunc_srl_vv, vfunc_sub_vv, vfunc_sub_vx,
 };
 use crate::memory::Memory;
 use ckb_vm_definitions::{instructions as insts, registers::RA, VLEN};
@@ -1405,7 +1405,19 @@ pub fn execute_instruction<Mac: Machine>(
             }
         }
         insts::OP_VDIV_VX => {
-            unreachable!()
+            let i = VXtype(inst);
+            let vlmax = VLEN / machine.get_vsew();
+            for j in 0..((machine.get_vl() - 1) / vlmax) + 1 {
+                let num = if machine.get_vl() > vlmax {
+                    vlmax
+                } else {
+                    machine.get_vl()
+                };
+                let rs1 = machine.registers()[i.rs1() as usize + j as usize].to_u64();
+                let vs2 = machine.vregisters()[i.vs2() as usize + j as usize];
+                let mut vd = machine.get_vregister(i.vd() + j as usize);
+                vfunc_div_vx(&vs2, rs1, &mut vd, num as usize)?;
+            }
         }
         insts::OP_VREMU_VV => {
             let i = VVtype(inst);
