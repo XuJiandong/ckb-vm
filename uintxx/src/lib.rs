@@ -309,7 +309,11 @@ impl U128 {
     /// range of the type, rather than the bits shifted out of the LHS being returned to the other end. The
     /// primitive integer types all implement a rotate_left function, which may be what you want instead.
     pub fn wrapping_shl(self, rhs: u32) -> Self {
-        Self(self.0.wrapping_shl(rhs))
+        if rhs >= 128 {
+            return U128(0);
+        } else {
+            Self(self.0.wrapping_shl(rhs))
+        }
     }
 
     /// Panic-free bitwise shift-right; yields self >> mask(rhs), where mask removes any high-order bits of rhs
@@ -319,12 +323,24 @@ impl U128 {
     /// the range of the type, rather than the bits shifted out of the LHS being returned to the other end. The
     /// primitive integer types all implement a rotate_right function, which may be what you want instead.
     pub fn wrapping_shr(self, rhs: u32) -> Self {
-        Self(self.0.wrapping_shr(rhs))
+        if rhs >= 128 {
+            U128(0)
+        } else {
+            Self(self.0.wrapping_shr(rhs))
+        }
     }
 
     /// Panic-free bitwise sign shift-right.
     pub fn wrapping_sra(self, rhs: u32) -> Self {
-        Self((self.0 as i128).wrapping_shr(rhs) as u128)
+        if rhs >= 128 {
+            if self.is_negative() {
+                Self::MAX
+            } else {
+                Self::MIN
+            }
+        } else {
+            Self((self.0 as i128).wrapping_shr(rhs) as u128)
+        }
     }
 
     /// Function mul_full returns the 256-bit product of x and y: (lo, hi) = x * y
