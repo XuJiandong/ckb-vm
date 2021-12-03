@@ -13,6 +13,9 @@ impl U128 {
 
     /// The one value that can be represented by this integer type.
     pub const ONE: Self = Self(1);
+
+    /// The zero value that can be represented by this integer type.
+    pub const ZERO: Self = Self(0);
 }
 
 impl std::fmt::LowerHex for U128 {
@@ -397,6 +400,12 @@ macro_rules! uint_impl {
             pub const ONE: Self = Self {
                 lo: <$half>::ONE,
                 hi: <$half>::MIN,
+            };
+
+            /// The zero value that can be represented by this integer type.
+            pub const ZERO: Self = Self {
+                lo: <$half>::ZERO,
+                hi: <$half>::ZERO,
             };
         }
 
@@ -810,7 +819,7 @@ macro_rules! uint_impl {
                 let u1 = self >> 1;
                 let v1 = rhs << n;
                 let (tq, _) = u1.div_half_0(v1.hi);
-                let mut tq = tq >> ((Self::BITS / 2 - 1) - n);
+                let mut tq = tq >> (Self::BITS / 2 - 1 - n);
                 if tq != <$half>::MIN {
                     tq -= <$half>::ONE;
                 }
@@ -1152,19 +1161,3 @@ macro_rules! sint_impl {
 sint_impl!(I256, U256);
 sint_impl!(I512, U512);
 sint_impl!(I1024, U1024);
-
-mod internal {
-    use uint::construct_uint;
-
-    construct_uint! {
-        pub struct U256(4);
-    }
-
-    construct_uint! {
-        pub struct U512(8);
-    }
-
-    construct_uint! {
-        pub struct U1024(16);
-    }
-}
