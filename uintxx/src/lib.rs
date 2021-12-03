@@ -1148,7 +1148,7 @@ macro_rules! sint_impl {
                 } else if self.uint == minus_min && rhs.uint == minus_one {
                     Self::from(<$uint>::MIN)
                 } else {
-                    self.div(rhs).0
+                    self.div(rhs).1
                 }
             }
 

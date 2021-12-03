@@ -81,6 +81,31 @@ fn test_div() {
 }
 
 #[test]
+fn test_urem() {
+    let case_list = [[
+        U256 {
+            lo: U128(0x00000000000000000000000000000007),
+            hi: U128(0x00000000000000000000000000000000),
+        },
+        U256 {
+            lo: U128(0x00000000000000000000000000000002),
+            hi: U128(0x00000000000000000000000000000000),
+        },
+        U256 {
+            lo: U128(0x00000000000000000000000000000001),
+            hi: U128(0x00000000000000000000000000000000),
+        },
+    ]];
+    for case in &case_list {
+        let lhs = case[0];
+        let rhs = case[1];
+        let e = case[2];
+        let r = lhs.wrapping_rem(rhs);
+        assert_eq!(r, e);
+    }
+}
+
+#[test]
 fn test_rem() {
     let case_list = [
         [
@@ -109,6 +134,20 @@ fn test_rem() {
             I256::from(U256 {
                 lo: U128(0x00000000000000000000000000000000),
                 hi: U128(0x00000000000000000000000000000000),
+            }),
+        ],
+        [
+            I256::from(U256 {
+                lo: U128(0xfffffffffffffffffffffffffffffff9),
+                hi: U128(0xffffffffffffffffffffffffffffffff),
+            }),
+            I256::from(U256 {
+                lo: U128(0x00000000000000000000000000000003),
+                hi: U128(0x00000000000000000000000000000000),
+            }),
+            I256::from(U256 {
+                lo: U128(0xffffffffffffffffffffffffffffffff),
+                hi: U128(0xffffffffffffffffffffffffffffffff),
             }),
         ],
     ];

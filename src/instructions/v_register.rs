@@ -2419,27 +2419,227 @@ pub fn vfunc_div_vx(
         }
         (VRegister::U128(a), VRegister::U128(ref mut r)) => {
             for i in 0..num {
-                r[i] = (a[i] as i128).wrapping_div(rhs as i128) as u128;
+                r[i] = if rhs == 0 {
+                    u128::MAX
+                } else if a[i] == 1 << 127 && rhs == u64::MAX {
+                    1u128 << 127
+                } else {
+                    (a[i] as i128).wrapping_div(rhs as i128) as u128
+                }
             }
         }
         (VRegister::U64(a), VRegister::U64(ref mut r)) => {
             for i in 0..num {
-                r[i] = (a[i] as i64).wrapping_div(rhs as i64) as u64;
+                r[i] = if rhs == 0 {
+                    u64::MAX
+                } else if a[i] == 1 << 63 && rhs == u64::MAX {
+                    1u64 << 63
+                } else {
+                    (a[i] as i64).wrapping_div(rhs as i64) as u64
+                }
             }
         }
         (VRegister::U32(a), VRegister::U32(ref mut r)) => {
             for i in 0..num {
-                r[i] = (a[i] as i32).wrapping_div(rhs as u32 as i32) as u32;
+                r[i] = if rhs == 0 {
+                    u32::MAX
+                } else if a[i] == 1 << 31 && rhs as u32 == u32::MAX {
+                    1u32 << 31
+                } else {
+                    (a[i] as i32).wrapping_div(rhs as i32) as u32
+                }
             }
         }
         (VRegister::U16(a), VRegister::U16(ref mut r)) => {
             for i in 0..num {
-                r[i] = (a[i] as i16).wrapping_div(rhs as u16 as i16) as u16;
+                r[i] = if rhs == 0 {
+                    u16::MAX
+                } else if a[i] == 1 << 15 && rhs as u16 == u16::MAX {
+                    1u16 << 15
+                } else {
+                    (a[i] as i16).wrapping_div(rhs as i16) as u16
+                }
             }
         }
         (VRegister::U8(a), VRegister::U8(ref mut r)) => {
             for i in 0..num {
-                r[i] = (a[i] as i8).wrapping_div(rhs as u8 as i8) as u8;
+                r[i] = if rhs == 0 {
+                    u8::MAX
+                } else if a[i] == 1 << 7 && rhs as u8 == u8::MAX {
+                    1u8 << 7
+                } else {
+                    (a[i] as i8).wrapping_div(rhs as i8) as u8
+                }
+            }
+        }
+        _ => return Err(Error::Unexpected),
+    }
+    Ok(())
+}
+
+pub fn vfunc_rem_vv(
+    lhs: &VRegister,
+    rhs: &VRegister,
+    result: &mut VRegister,
+    num: usize,
+) -> Result<(), Error> {
+    match (lhs, rhs, result) {
+        (VRegister::U1024(a), VRegister::U1024(b), VRegister::U1024(ref mut r)) => {
+            for i in 0..num {
+                r[i] = I1024::from(a[i]).wrapping_rem(I1024::from(b[i])).uint;
+            }
+        }
+        (VRegister::U512(a), VRegister::U512(b), VRegister::U512(ref mut r)) => {
+            for i in 0..num {
+                r[i] = I512::from(a[i]).wrapping_rem(I512::from(b[i])).uint;
+            }
+        }
+        (VRegister::U256(a), VRegister::U256(b), VRegister::U256(ref mut r)) => {
+            for i in 0..num {
+                r[i] = I256::from(a[i]).wrapping_rem(I256::from(b[i])).uint;
+            }
+        }
+        (VRegister::U128(a), VRegister::U128(b), VRegister::U128(ref mut r)) => {
+            for i in 0..num {
+                r[i] = if b[i] == 0 {
+                    a[i]
+                } else if a[i] == 1 << 127 && b[i] == u128::MAX {
+                    0
+                } else {
+                    (a[i] as i128).wrapping_rem(b[i] as i128) as u128
+                }
+            }
+        }
+        (VRegister::U64(a), VRegister::U64(b), VRegister::U64(ref mut r)) => {
+            for i in 0..num {
+                r[i] = if b[i] == 0 {
+                    a[i]
+                } else if a[i] == 1 << 63 && b[i] == u64::MAX {
+                    0
+                } else {
+                    (a[i] as i64).wrapping_rem(b[i] as i64) as u64
+                }
+            }
+        }
+        (VRegister::U32(a), VRegister::U32(b), VRegister::U32(ref mut r)) => {
+            for i in 0..num {
+                r[i] = if b[i] == 0 {
+                    a[i]
+                } else if a[i] == 1 << 31 && b[i] == u32::MAX {
+                    0
+                } else {
+                    (a[i] as i32).wrapping_rem(b[i] as i32) as u32
+                }
+            }
+        }
+        (VRegister::U16(a), VRegister::U16(b), VRegister::U16(ref mut r)) => {
+            for i in 0..num {
+                r[i] = if b[i] == 0 {
+                    a[i]
+                } else if a[i] == 1 << 15 && b[i] == u16::MAX {
+                    0
+                } else {
+                    (a[i] as i16).wrapping_rem(b[i] as i16) as u16
+                }
+            }
+        }
+        (VRegister::U8(a), VRegister::U8(b), VRegister::U8(ref mut r)) => {
+            for i in 0..num {
+                r[i] = if b[i] == 0 {
+                    a[i]
+                } else if a[i] == 1 << 7 && b[i] == u8::MAX {
+                    0
+                } else {
+                    (a[i] as i8).wrapping_rem(b[i] as i8) as u8
+                }
+            }
+        }
+        _ => return Err(Error::Unexpected),
+    }
+    Ok(())
+}
+
+pub fn vfunc_rem_vx(
+    lhs: &VRegister,
+    rhs: u64,
+    result: &mut VRegister,
+    num: usize,
+) -> Result<(), Error> {
+    match (lhs, result) {
+        (VRegister::U1024(a), VRegister::U1024(ref mut r)) => {
+            for i in 0..num {
+                r[i] = I1024::from(a[i])
+                    .wrapping_rem(I1024::from(U1024::from(rhs as i64)))
+                    .uint;
+            }
+        }
+        (VRegister::U512(a), VRegister::U512(ref mut r)) => {
+            for i in 0..num {
+                r[i] = I512::from(a[i])
+                    .wrapping_rem(I512::from(U512::from(rhs as i64)))
+                    .uint;
+            }
+        }
+        (VRegister::U256(a), VRegister::U256(ref mut r)) => {
+            for i in 0..num {
+                r[i] = I256::from(a[i])
+                    .wrapping_rem(I256::from(U256::from(rhs as i64)))
+                    .uint;
+            }
+        }
+        (VRegister::U128(a), VRegister::U128(ref mut r)) => {
+            for i in 0..num {
+                r[i] = if rhs == 0 {
+                    a[i]
+                } else if a[i] == 1 << 127 && rhs == u64::MAX {
+                    0
+                } else {
+                    (a[i] as i128).wrapping_rem(rhs as i128) as u128
+                }
+            }
+        }
+        (VRegister::U64(a), VRegister::U64(ref mut r)) => {
+            for i in 0..num {
+                r[i] = if rhs == 0 {
+                    a[i]
+                } else if a[i] == 1 << 63 && rhs == u64::MAX {
+                    0
+                } else {
+                    (a[i] as i64).wrapping_rem(rhs as i64) as u64
+                }
+            }
+        }
+        (VRegister::U32(a), VRegister::U32(ref mut r)) => {
+            for i in 0..num {
+                r[i] = if rhs == 0 {
+                    a[i]
+                } else if a[i] == 1 << 31 && rhs as u32 == u32::MAX {
+                    0
+                } else {
+                    (a[i] as i32).wrapping_rem(rhs as i32) as u32
+                }
+            }
+        }
+        (VRegister::U16(a), VRegister::U16(ref mut r)) => {
+            for i in 0..num {
+                r[i] = if rhs == 0 {
+                    a[i]
+                } else if a[i] == 1 << 15 && rhs as u16 == u16::MAX {
+                    0
+                } else {
+                    (a[i] as i16).wrapping_rem(rhs as i16) as u16
+                }
+            }
+        }
+        (VRegister::U8(a), VRegister::U8(ref mut r)) => {
+            for i in 0..num {
+                r[i] = if rhs == 0 {
+                    a[i]
+                } else if a[i] == 1 << 7 && rhs as u8 == u8::MAX {
+                    0
+                } else {
+                    (a[i] as i8).wrapping_rem(rhs as i8) as u8
+                }
             }
         }
         _ => return Err(Error::Unexpected),
