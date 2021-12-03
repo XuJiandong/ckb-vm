@@ -795,7 +795,7 @@ macro_rules! uint_impl {
                     (Self::from(lo), r)
                 } else {
                     let (hi, r) = Self::from(self.hi).div_half_0(y);
-                    let (lo, r) = Self { hi: r, lo: self.lo }.div_half_0(y);
+                    let (lo, r) = Self { lo: self.lo, hi: r }.div_half_0(y);
                     (Self { lo: lo, hi: hi }, r)
                 }
             }
@@ -808,7 +808,7 @@ macro_rules! uint_impl {
                 }
                 let n = rhs.hi.leading_zeros();
                 let u1 = self >> 1;
-                let v1 = self << n;
+                let v1 = rhs << n;
                 let (tq, _) = u1.div_half_0(v1.hi);
                 let mut tq = tq >> ((Self::BITS / 2 - 1) - n);
                 if tq != <$half>::MIN {

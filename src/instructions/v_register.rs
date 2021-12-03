@@ -2306,3 +2306,85 @@ pub fn vfunc_msle_vi(
     }
     Ok(())
 }
+
+pub fn vfunc_div_vv(
+    lhs: &VRegister,
+    rhs: &VRegister,
+    result: &mut VRegister,
+    num: usize,
+) -> Result<(), Error> {
+    match (lhs, rhs, result) {
+        (VRegister::U1024(a), VRegister::U1024(b), VRegister::U1024(ref mut r)) => {
+            for i in 0..num {
+                r[i] = I1024::from(a[i]).wrapping_div(I1024::from(b[i])).uint;
+            }
+        }
+        (VRegister::U512(a), VRegister::U512(b), VRegister::U512(ref mut r)) => {
+            for i in 0..num {
+                r[i] = I512::from(a[i]).wrapping_div(I512::from(b[i])).uint;
+            }
+        }
+        (VRegister::U256(a), VRegister::U256(b), VRegister::U256(ref mut r)) => {
+            for i in 0..num {
+                r[i] = I256::from(a[i]).wrapping_div(I256::from(b[i])).uint;
+            }
+        }
+        (VRegister::U128(a), VRegister::U128(b), VRegister::U128(ref mut r)) => {
+            for i in 0..num {
+                r[i] = if b[i] == 0 {
+                    u128::MAX
+                } else if a[i] == 1 << 127 && b[i] == u128::MAX {
+                    1u128 << 127
+                } else {
+                    (a[i] as i128).wrapping_div(b[i] as i128) as u128
+                }
+            }
+        }
+        (VRegister::U64(a), VRegister::U64(b), VRegister::U64(ref mut r)) => {
+            for i in 0..num {
+                r[i] = if b[i] == 0 {
+                    u64::MAX
+                } else if a[i] == 1 << 63 && b[i] == u64::MAX {
+                    1u64 << 63
+                } else {
+                    (a[i] as i64).wrapping_div(b[i] as i64) as u64
+                }
+            }
+        }
+        (VRegister::U32(a), VRegister::U32(b), VRegister::U32(ref mut r)) => {
+            for i in 0..num {
+                r[i] = if b[i] == 0 {
+                    u32::MAX
+                } else if a[i] == 1 << 31 && b[i] == u32::MAX {
+                    1u32 << 31
+                } else {
+                    (a[i] as i32).wrapping_div(b[i] as i32) as u32
+                }
+            }
+        }
+        (VRegister::U16(a), VRegister::U16(b), VRegister::U16(ref mut r)) => {
+            for i in 0..num {
+                r[i] = if b[i] == 0 {
+                    u16::MAX
+                } else if a[i] == 1 << 15 && b[i] == u16::MAX {
+                    1u16 << 15
+                } else {
+                    (a[i] as i16).wrapping_div(b[i] as i16) as u16
+                }
+            }
+        }
+        (VRegister::U8(a), VRegister::U8(b), VRegister::U8(ref mut r)) => {
+            for i in 0..num {
+                r[i] = if b[i] == 0 {
+                    u8::MAX
+                } else if a[i] == 1 << 7 && b[i] == u8::MAX {
+                    1u8 << 7
+                } else {
+                    (a[i] as i8).wrapping_div(b[i] as i8) as u8
+                }
+            }
+        }
+        _ => return Err(Error::Unexpected),
+    }
+    Ok(())
+}
