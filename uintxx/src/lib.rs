@@ -766,7 +766,7 @@ macro_rules! uint_impl {
             fn div_half_0(self, y: $half) -> ($half, $half) {
                 let twos = <$half>::ONE << (Self::BITS / 4);
                 let mask = twos - <$half>::ONE;
-                assert!(y != <$half>::MIN);
+                assert!(y != <$half>::ZERO);
                 assert!(y > self.hi);
                 let s = y.leading_zeros();
                 let y = y << s;
@@ -811,7 +811,7 @@ macro_rules! uint_impl {
 
             /// Inspired by https://github.com/Pilatuz/bigx/blob/8615506d17c5/uint128.go#L291
             fn div(self, rhs: Self) -> (Self, Self) {
-                if rhs.hi == <$half>::MIN {
+                if rhs.hi == <$half>::ZERO {
                     let (q, r) = self.div_half_1(rhs.lo);
                     return (q, Self::from(r));
                 }
@@ -820,7 +820,7 @@ macro_rules! uint_impl {
                 let v1 = rhs << n;
                 let (tq, _) = u1.div_half_0(v1.hi);
                 let mut tq = tq >> (Self::BITS / 2 - 1 - n);
-                if tq != <$half>::MIN {
+                if tq != <$half>::ZERO {
                     tq -= <$half>::ONE;
                 }
                 let mut q = Self::from(tq);
