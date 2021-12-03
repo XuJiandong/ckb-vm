@@ -555,6 +555,19 @@ macro_rules! uint_impl {
             }
         }
 
+        impl std::ops::Rem for $name {
+            type Output = Self;
+            fn rem(self, rhs: Self) -> Self::Output {
+                self.wrapping_rem(rhs)
+            }
+        }
+
+        impl std::ops::RemAssign for $name {
+            fn rem_assign(&mut self, rhs: Self) {
+                *self = self.wrapping_rem(rhs);
+            }
+        }
+
         impl std::ops::Shl<u32> for $name {
             type Output = Self;
             fn shl(self, rhs: u32) -> Self::Output {
@@ -1036,7 +1049,84 @@ macro_rules! sint_impl {
             }
         }
 
+        impl std::ops::Div for $name {
+            type Output = Self;
+            fn div(self, rhs: Self) -> Self::Output {
+                self.wrapping_div(rhs)
+            }
+        }
+
+        impl std::ops::DivAssign for $name {
+            fn div_assign(&mut self, rhs: Self) {
+                *self = self.wrapping_div(rhs)
+            }
+        }
+
+        impl std::ops::Rem for $name {
+            type Output = Self;
+            fn rem(self, rhs: Self) -> Self::Output {
+                self.wrapping_rem(rhs)
+            }
+        }
+
+        impl std::ops::RemAssign for $name {
+            fn rem_assign(&mut self, rhs: Self) {
+                *self = self.wrapping_rem(rhs);
+            }
+        }
+
         impl $name {
+            /// Inspired by https://github.com/chfast/intx/blob/master/include/intx/intx.hpp#L760
+            fn div(self, rhs: Self) -> (Self, Self) {
+                let x = self.uint;
+                let y = rhs.uint;
+                let x_is_neg = x.is_negative();
+                let y_is_neg = y.is_negative();
+                let x_abs = if x_is_neg { -x } else { x };
+                let y_abs = if y_is_neg { -y } else { y };
+                let q_is_neg = x_is_neg ^ y_is_neg;
+                let r = x_abs.div(y_abs);
+                let quo = r.0;
+                let rem = r.1;
+                let quo = Self::from(if q_is_neg { -quo } else { quo });
+                let rem = Self::from(if x_is_neg { -rem } else { rem });
+                (quo, rem)
+            }
+
+            /// Wrapping (modular) division. Computes self / rhs, wrapping around at the boundary of the type.
+            ///
+            /// The only case where such wrapping can occur is when one divides MIN / -1 on a signed type (where MIN is
+            /// the negative minimal value for the type); this is equivalent to -MIN, a positive value that is too
+            /// large to represent in the type. In such a case, this function returns MIN itself.
+            pub fn wrapping_div(self, rhs: Self) -> Self {
+                let minus_min = <$uint>::ONE << (<$uint>::BITS - 1);
+                let minus_one = <$uint>::MAX;
+                if rhs.uint == <$uint>::MIN {
+                    Self::from(<$uint>::MAX)
+                } else if self.uint == minus_min && rhs.uint == minus_one {
+                    Self::from(minus_min)
+                } else {
+                    self.div(rhs).0
+                }
+            }
+
+            /// Wrapping (modular) remainder. Computes self % rhs, wrapping around at the boundary of the type.
+            ///
+            /// Such wrap-around never actually occurs mathematically; implementation artifacts make x % y invalid for
+            /// MIN / -1 on a signed type (where MIN is the negative minimal value). In such a case, this function
+            /// returns 0.
+            pub fn wrapping_rem(self, rhs: Self) -> Self {
+                let minus_min = <$uint>::ONE << (<$uint>::BITS - 1);
+                let minus_one = <$uint>::MAX;
+                if rhs.uint == <$uint>::MIN {
+                    self
+                } else if self.uint == minus_min && rhs.uint == minus_one {
+                    Self::from(<$uint>::MIN)
+                } else {
+                    self.div(rhs).0
+                }
+            }
+
             /// Panic-free bitwise shift-left; yields self << mask(rhs), where mask removes any high-order bits of rhs
             /// that would cause the shift to exceed the bitwidth of the type.
             ///
