@@ -66,7 +66,7 @@ fn test_div() {
                 hi: U128(0x00000bea6a6af75538be984c83ce8648),
             }),
             I256::from(U256 {
-                lo: U128(0xfffffffffffffffffffffffffffe2a27),
+                lo: U128(0xfffffffffffffffffffffffffffe2a28),
                 hi: U128(0xffffffffffffffffffffffffffffffff),
             }),
         ],
