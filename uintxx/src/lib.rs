@@ -25,6 +25,15 @@ pub trait Element:
     const ONE: Self;
     /// The zero value that can be represented by this integer type.
     const ZERO: Self;
+
+    // For integer operations, the scalar can be taken from the scalar x register specified by rs1. If XLEN>SEW, the
+    // least-significant SEW bits of the x register are used, unless otherwise specified. If XLEN<SEW, the value from
+    // the x register is sign-extended to SEW bits.
+    // fn vx(x: u64) -> Self;
+
+    // For integer operations, the scalar can be a 5-bit immediate, imm[4:0], encoded in the rs1 field. The value is
+    // sign-extended to SEW bits, unless otherwise specified.
+    // fn vi(i: i32) -> Self;
 }
 
 macro_rules! uint_wrap_impl {
@@ -628,8 +637,8 @@ macro_rules! uint_impl {
         impl Element for $name {
             const BITS: u32 = <$half>::BITS * 2;
             const MIN: Self = Self {
-                lo: <$half>::ZERO,
-                hi: <$half>::ZERO,
+                lo: <$half>::MIN,
+                hi: <$half>::MIN,
             };
             const MAX: Self = Self {
                 lo: <$half>::MAX,
@@ -637,11 +646,11 @@ macro_rules! uint_impl {
             };
             const ONE: Self = Self {
                 lo: <$half>::ONE,
-                hi: <$half>::ZERO,
+                hi: <$half>::MIN,
             };
             const ZERO: Self = Self {
-                lo: <$half>::ZERO,
-                hi: <$half>::ZERO,
+                lo: <$half>::MIN,
+                hi: <$half>::MIN,
             };
         }
 
