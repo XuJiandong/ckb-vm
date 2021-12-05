@@ -48,6 +48,26 @@ pub trait Element:
     /// For integer operations, the scalar can be a 5-bit immediate, imm[4:0], encoded in the rs1 field. The value is
     /// sign-extended to SEW bits, unless otherwise specified.
     fn vi(i: i32) -> Self;
+
+    /// Calculates self + other
+    ///
+    /// Returns a tuple of the addition along with a boolean indicating whether an arithmetic overflow would
+    /// occur.
+    /// If an overflow would have occurred then the wrapped value is returned.
+    fn overflowing_add(self, other: Self) -> (Self, bool);
+
+    /// Calculates self - other
+    ///
+    /// Returns a tuple of the subtraction along with a boolean indicating whether an arithmetic overflow would
+    /// occur.
+    /// If an overflow would have occurred then the wrapped value is returned.
+    fn overflowing_sub(self, other: Self) -> (Self, bool);
+
+    /// Wrapping (modular) addition. Computes self + other, wrapping around at the boundary of the type.
+    fn wrapping_add(self, other: Self) -> Self;
+
+    /// Wrapping (modular) subtraction. Computes self - other, wrapping around at the boundary of the type.
+    fn wrapping_sub(self, other: Self) -> Self;
 }
 
 macro_rules! uint_wrap_impl {
@@ -255,6 +275,24 @@ macro_rules! uint_wrap_impl {
                 assert!(i <= 15);
                 Self(i as $uint)
             }
+
+            fn overflowing_add(self, other: Self) -> (Self, bool) {
+                let (r, b) = self.0.overflowing_add(other.0);
+                (Self(r), b)
+            }
+
+            fn overflowing_sub(self, other: Self) -> (Self, bool) {
+                let (r, b) = self.0.overflowing_sub(other.0);
+                (Self(r), b)
+            }
+
+            fn wrapping_add(self, other: Self) -> Self {
+                Self(self.0.wrapping_add(other.0))
+            }
+
+            fn wrapping_sub(self, other: Self) -> Self {
+                Self(self.0.wrapping_sub(other.0))
+            }
         }
     };
 }
@@ -311,26 +349,6 @@ impl U128 {
         self.0.leading_zeros()
     }
 
-    /// Calculates self + rhs
-    ///
-    /// Returns a tuple of the addition along with a boolean indicating whether an arithmetic overflow would
-    /// occur.
-    /// If an overflow would have occurred then the wrapped value is returned.
-    pub fn overflowing_add(self, rhs: Self) -> (Self, bool) {
-        let (r, b) = self.0.overflowing_add(rhs.0);
-        (Self(r), b)
-    }
-
-    /// Calculates self - rhs
-    ///
-    /// Returns a tuple of the subtraction along with a boolean indicating whether an arithmetic overflow would
-    /// occur.
-    /// If an overflow would have occurred then the wrapped value is returned.
-    pub fn overflowing_sub(self, rhs: Self) -> (Self, bool) {
-        let (r, b) = self.0.overflowing_sub(rhs.0);
-        (Self(r), b)
-    }
-
     /// Calculates the multiplication of self and rhs.
     ///
     /// Returns a tuple of the multiplication along with a boolean indicating whether an arithmetic overflow would
@@ -356,16 +374,6 @@ impl U128 {
     pub fn overflowing_rem(self, rhs: Self) -> (Self, bool) {
         let (r, b) = self.0.overflowing_rem(rhs.0);
         (Self(r), b)
-    }
-
-    /// Wrapping (modular) addition. Computes self + rhs, wrapping around at the boundary of the type.
-    pub fn wrapping_add(self, rhs: Self) -> Self {
-        Self(self.0.wrapping_add(rhs.0))
-    }
-
-    /// Wrapping (modular) subtraction. Computes self - rhs, wrapping around at the boundary of the type.
-    pub fn wrapping_sub(self, rhs: Self) -> Self {
-        Self(self.0.wrapping_sub(rhs.0))
     }
 
     /// Wrapping (modular) multiplication. Computes self * rhs, wrapping around at the boundary of the type.
@@ -691,6 +699,32 @@ macro_rules! uint_impl {
                 assert!(i <= 15);
                 Self::from(i)
             }
+
+            fn overflowing_add(self, other: Self) -> (Self, bool) {
+                let (lo, lo_carry) = self.lo.overflowing_add(other.lo);
+                let (hi, hi_carry_1) = self.hi.overflowing_add(<$half>::from(lo_carry));
+                let (hi, hi_carry_2) = hi.overflowing_add(other.hi);
+                (Self { lo, hi }, hi_carry_1 || hi_carry_2)
+            }
+
+            fn overflowing_sub(self, other: Self) -> (Self, bool) {
+                let (lo, lo_borrow) = self.lo.overflowing_sub(other.lo);
+                let (hi, hi_borrow_1) = self.hi.overflowing_sub(<$half>::from(lo_borrow));
+                let (hi, hi_borrow_2) = hi.overflowing_sub(other.hi);
+                (Self { lo, hi }, hi_borrow_1 || hi_borrow_2)
+            }
+
+            fn wrapping_add(self, other: Self) -> Self {
+                let (lo, carry) = self.lo.overflowing_add(other.lo);
+                let hi = self.hi.wrapping_add(other.hi).wrapping_add(<$half>::from(carry));
+                Self { lo, hi }
+            }
+
+            fn wrapping_sub(self, other: Self) -> Self {
+                let (lo, borrow) = self.lo.overflowing_sub(other.lo);
+                let hi = self.hi.wrapping_sub(other.hi).wrapping_sub(<$half>::from(borrow));
+                Self { lo, hi }
+            }
         }
 
         impl $name {
@@ -775,30 +809,6 @@ macro_rules! uint_impl {
                 }
             }
 
-            /// Calculates self + rhs
-            ///
-            /// Returns a tuple of the addition along with a boolean indicating whether an arithmetic overflow would
-            /// occur.
-            /// If an overflow would have occurred then the wrapped value is returned.
-            pub fn overflowing_add(self, rhs: Self) -> (Self, bool) {
-                let (lo, lo_carry) = self.lo.overflowing_add(rhs.lo);
-                let (hi, hi_carry_1) = self.hi.overflowing_add(<$half>::from(lo_carry));
-                let (hi, hi_carry_2) = hi.overflowing_add(rhs.hi);
-                (Self { lo, hi }, hi_carry_1 || hi_carry_2)
-            }
-
-            /// Calculates self - rhs
-            ///
-            /// Returns a tuple of the subtraction along with a boolean indicating whether an arithmetic overflow would
-            /// occur.
-            /// If an overflow would have occurred then the wrapped value is returned.
-            pub fn overflowing_sub(self, rhs: Self) -> (Self, bool) {
-                let (lo, lo_borrow) = self.lo.overflowing_sub(rhs.lo);
-                let (hi, hi_borrow_1) = self.hi.overflowing_sub(<$half>::from(lo_borrow));
-                let (hi, hi_borrow_2) = hi.overflowing_sub(rhs.hi);
-                (Self { lo, hi }, hi_borrow_1 || hi_borrow_2)
-            }
-
             /// Calculates the multiplication of self and rhs.
             ///
             /// Returns a tuple of the multiplication along with a boolean indicating whether an arithmetic overflow
@@ -835,20 +845,6 @@ macro_rules! uint_impl {
             /// occur. Note that for unsigned integers overflow never occurs, so the second value is always false.
             pub fn overflowing_rem(self, rhs: Self) -> (Self, bool) {
                 (self.wrapping_rem(rhs), false)
-            }
-
-            /// Wrapping (modular) addition. Computes self + rhs, wrapping around at the boundary of the type.
-            pub fn wrapping_add(self, rhs: Self) -> Self {
-                let (lo, carry) = self.lo.overflowing_add(rhs.lo);
-                let hi = self.hi.wrapping_add(rhs.hi).wrapping_add(<$half>::from(carry));
-                Self { lo, hi }
-            }
-
-            /// Wrapping (modular) subtraction. Computes self - rhs, wrapping around at the boundary of the type.
-            pub fn wrapping_sub(self, rhs: Self) -> Self {
-                let (lo, borrow) = self.lo.overflowing_sub(rhs.lo);
-                let hi = self.hi.wrapping_sub(rhs.hi).wrapping_sub(<$half>::from(borrow));
-                Self { lo, hi }
             }
 
             /// Wrapping (modular) multiplication. Computes self * rhs, wrapping around at the boundary of the type.
