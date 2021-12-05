@@ -222,6 +222,7 @@ macro_rules! uint_wrap_impl {
         impl std::ops::Shl<u32> for $name {
             type Output = Self;
             fn shl(self, other: u32) -> Self::Output {
+                assert!(other < Self::BITS);
                 Self(self.0.wrapping_shl(other))
             }
         }
@@ -229,6 +230,7 @@ macro_rules! uint_wrap_impl {
         impl std::ops::Shr<u32> for $name {
             type Output = Self;
             fn shr(self, other: u32) -> Self::Output {
+                assert!(other < Self::BITS);
                 Self(self.0.wrapping_shr(other))
             }
         }
@@ -872,7 +874,12 @@ macro_rules! uint_impl {
                 let y = y << s;
                 let yn1 = y >> (Self::BITS / 4);
                 let yn0 = y & mask;
-                let un32 = (self.hi << s) | (self.lo >> (Self::BITS / 2 - s));
+                let un32 = (self.hi << s)
+                    | if s == 0 {
+                        <$half>::ZERO
+                    } else {
+                        self.lo >> (Self::BITS / 2 - s)
+                    };
                 let un10 = self.lo << s;
                 let un1 = un10 >> (Self::BITS / 4);
                 let un0 = un10 & mask;
