@@ -14,6 +14,8 @@ pub trait Element:
     + std::ops::BitXorAssign
     + std::ops::Not
     + std::ops::Neg
+    + std::cmp::PartialOrd
+    + std::cmp::Ord
 {
     /// The size of this integer type in bits.
     const BITS: u32;
@@ -26,14 +28,14 @@ pub trait Element:
     /// The zero value that can be represented by this integer type.
     const ZERO: Self;
 
-    // For integer operations, the scalar can be taken from the scalar x register specified by rs1. If XLEN>SEW, the
-    // least-significant SEW bits of the x register are used, unless otherwise specified. If XLEN<SEW, the value from
-    // the x register is sign-extended to SEW bits.
-    // fn vx(x: u64) -> Self;
+    /// For integer operations, the scalar can be taken from the scalar x register specified by rs1. If XLEN>SEW, the
+    /// least-significant SEW bits of the x register are used, unless otherwise specified. If XLEN<SEW, the value from
+    /// the x register is sign-extended to SEW bits.
+    fn vx(x: u64) -> Self;
 
-    // For integer operations, the scalar can be a 5-bit immediate, imm[4:0], encoded in the rs1 field. The value is
-    // sign-extended to SEW bits, unless otherwise specified.
-    // fn vi(i: i32) -> Self;
+    /// For integer operations, the scalar can be a 5-bit immediate, imm[4:0], encoded in the rs1 field. The value is
+    /// sign-extended to SEW bits, unless otherwise specified.
+    fn vi(i: i32) -> Self;
 }
 
 macro_rules! uint_wrap_impl {
@@ -112,12 +114,38 @@ macro_rules! uint_wrap_impl {
             }
         }
 
+        impl std::cmp::PartialOrd for $name {
+            fn partial_cmp(&self, rhs: &Self) -> Option<std::cmp::Ordering> {
+                return self.0.partial_cmp(&rhs.0);
+            }
+        }
+
+        impl std::cmp::Ord for $name {
+            fn cmp(&self, rhs: &Self) -> std::cmp::Ordering {
+                self.0.cmp(&rhs.0)
+            }
+        }
+
         impl Element for $name {
             const BITS: u32 = <$uint>::BITS;
             const MIN: Self = Self(0);
             const MAX: Self = Self(<$uint>::MAX);
             const ONE: Self = Self(1);
             const ZERO: Self = Self(0);
+
+            fn vx(x: u64) -> Self {
+                if Self::BITS <= 64 {
+                    Self(x as $uint)
+                } else {
+                    Self(x as i64 as $uint)
+                }
+            }
+
+            fn vi(i: i32) -> Self {
+                assert!(i >= -16);
+                assert!(i <= 15);
+                Self(i as $uint)
+            }
         }
     };
 }
@@ -127,35 +155,6 @@ uint_wrap_impl!(U16, u16);
 uint_wrap_impl!(U32, u32);
 uint_wrap_impl!(U64, u64);
 uint_wrap_impl!(U128, u128);
-
-impl U128 {
-    /// The size of this integer type in bits.
-    pub const BITS: u32 = 128;
-
-    /// The smallest value that can be represented by this integer type.
-    pub const MIN: Self = Self(u128::MIN);
-
-    /// The largest value that can be represented by this integer type.
-    pub const MAX: Self = Self(u128::MAX);
-
-    /// The one value that can be represented by this integer type.
-    pub const ONE: Self = Self(1);
-
-    /// The zero value that can be represented by this integer type.
-    pub const ZERO: Self = Self(0);
-}
-
-impl std::cmp::PartialOrd for U128 {
-    fn partial_cmp(&self, rhs: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(rhs))
-    }
-}
-
-impl std::cmp::Ord for U128 {
-    fn cmp(&self, rhs: &Self) -> std::cmp::Ordering {
-        self.0.cmp(&rhs.0)
-    }
-}
 
 impl std::ops::Add for U128 {
     type Output = Self;
@@ -652,6 +651,16 @@ macro_rules! uint_impl {
                 lo: <$half>::MIN,
                 hi: <$half>::MIN,
             };
+
+            fn vx(x: u64) -> Self {
+                Self::from(x as i64)
+            }
+
+            fn vi(i: i32) -> Self {
+                assert!(i >= -16);
+                assert!(i <= 15);
+                Self::from(i)
+            }
         }
 
         impl $name {
