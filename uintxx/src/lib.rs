@@ -1,5 +1,127 @@
-#[derive(Copy, Clone, Default, PartialEq, Eq)]
-pub struct U128(pub u128);
+pub trait Element:
+    Copy
+    + Clone
+    + Default
+    + PartialEq
+    + Eq
+    + std::fmt::Display
+    + std::fmt::LowerHex
+    + std::ops::BitAnd
+    + std::ops::BitAndAssign
+    + std::ops::BitOr
+    + std::ops::BitOrAssign
+    + std::ops::BitXor
+    + std::ops::BitXorAssign
+    + std::ops::Not
+    + std::ops::Neg
+{
+    const BITS: u32;
+    const MIN: Self;
+    const MAX: Self;
+    const ONE: Self;
+    const ZERO: Self;
+}
+
+macro_rules! uint_wrap_impl {
+    ($name:ident, $uint:ty) => {
+        #[derive(Copy, Clone, Default, PartialEq, Eq)]
+        pub struct $name(pub $uint);
+
+        impl std::fmt::LowerHex for $name {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(f, "{:032x}", self.0)
+            }
+        }
+
+        impl std::fmt::Debug for $name {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(f, "{:032x}", self.0)
+            }
+        }
+
+        impl std::fmt::Display for $name {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(f, "{:032x}", self.0)
+            }
+        }
+
+        impl std::ops::BitAnd for $name {
+            type Output = Self;
+            fn bitand(self, rhs: Self) -> Self::Output {
+                Self(self.0 & rhs.0)
+            }
+        }
+
+        impl std::ops::BitAndAssign for $name {
+            fn bitand_assign(&mut self, rhs: Self) {
+                self.0 &= rhs.0
+            }
+        }
+
+        impl std::ops::BitOr for $name {
+            type Output = Self;
+            fn bitor(self, rhs: Self) -> Self::Output {
+                Self(self.0 | rhs.0)
+            }
+        }
+
+        impl std::ops::BitOrAssign for $name {
+            fn bitor_assign(&mut self, rhs: Self) {
+                self.0 |= rhs.0
+            }
+        }
+
+        impl std::ops::BitXor for $name {
+            type Output = Self;
+            fn bitxor(self, rhs: Self) -> Self::Output {
+                Self(self.0 ^ rhs.0)
+            }
+        }
+
+        impl std::ops::BitXorAssign for $name {
+            fn bitxor_assign(&mut self, rhs: Self) {
+                self.0 ^= rhs.0
+            }
+        }
+
+        impl std::ops::Not for $name {
+            type Output = Self;
+            fn not(self) -> Self::Output {
+                Self(!self.0)
+            }
+        }
+
+        impl std::ops::Neg for $name {
+            type Output = Self;
+            fn neg(self) -> Self::Output {
+                Self((!self.0).wrapping_add(1))
+            }
+        }
+
+        impl Element for $name {
+            /// The size of this integer type in bits.
+            const BITS: u32 = <$uint>::BITS;
+
+            /// The smallest value that can be represented by this integer type.
+            const MIN: Self = Self(0);
+
+            /// The largest value that can be represented by this integer type.
+            const MAX: Self = Self(<$uint>::MAX);
+
+            /// The one value that can be represented by this integer type.
+            const ONE: Self = Self(1);
+
+            /// The zero value that can be represented by this integer type.
+            const ZERO: Self = Self(0);
+        }
+    };
+}
+
+uint_wrap_impl!(U8, u8);
+uint_wrap_impl!(U16, u16);
+uint_wrap_impl!(U32, u32);
+uint_wrap_impl!(U64, u64);
+uint_wrap_impl!(U128, u128);
 
 impl U128 {
     /// The size of this integer type in bits.
@@ -16,77 +138,6 @@ impl U128 {
 
     /// The zero value that can be represented by this integer type.
     pub const ZERO: Self = Self(0);
-}
-
-impl std::fmt::LowerHex for U128 {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:032x}", self.0)
-    }
-}
-
-impl std::fmt::Debug for U128 {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:032x}", self.0)
-    }
-}
-
-impl std::fmt::Display for U128 {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:032x}", self.0)
-    }
-}
-
-impl std::ops::BitAnd for U128 {
-    type Output = Self;
-    fn bitand(self, rhs: Self) -> Self::Output {
-        Self(self.0 & rhs.0)
-    }
-}
-
-impl std::ops::BitAndAssign for U128 {
-    fn bitand_assign(&mut self, rhs: Self) {
-        self.0 &= rhs.0
-    }
-}
-
-impl std::ops::BitOr for U128 {
-    type Output = Self;
-    fn bitor(self, rhs: Self) -> Self::Output {
-        Self(self.0 | rhs.0)
-    }
-}
-
-impl std::ops::BitOrAssign for U128 {
-    fn bitor_assign(&mut self, rhs: Self) {
-        self.0 |= rhs.0
-    }
-}
-
-impl std::ops::BitXor for U128 {
-    type Output = Self;
-    fn bitxor(self, rhs: Self) -> Self::Output {
-        Self(self.0 ^ rhs.0)
-    }
-}
-
-impl std::ops::BitXorAssign for U128 {
-    fn bitxor_assign(&mut self, rhs: Self) {
-        self.0 ^= rhs.0
-    }
-}
-
-impl std::ops::Not for U128 {
-    type Output = Self;
-    fn not(self) -> Self::Output {
-        Self(!self.0)
-    }
-}
-
-impl std::ops::Neg for U128 {
-    type Output = Self;
-    fn neg(self) -> Self::Output {
-        Self((!self.0).wrapping_add(1))
-    }
 }
 
 impl std::cmp::PartialOrd for U128 {
@@ -396,35 +447,6 @@ macro_rules! uint_impl {
             pub hi: $half,
         }
 
-        impl $name {
-            /// The size of this integer type in bits.
-            pub const BITS: u32 = $bits;
-
-            /// The smallest value that can be represented by this integer type.
-            pub const MIN: Self = Self {
-                lo: <$half>::MIN,
-                hi: <$half>::MIN,
-            };
-
-            /// The largest value that can be represented by this integer type.
-            pub const MAX: Self = Self {
-                lo: <$half>::MAX,
-                hi: <$half>::MAX,
-            };
-
-            /// The one value that can be represented by this integer type.
-            pub const ONE: Self = Self {
-                lo: <$half>::ONE,
-                hi: <$half>::MIN,
-            };
-
-            /// The zero value that can be represented by this integer type.
-            pub const ZERO: Self = Self {
-                lo: <$half>::ZERO,
-                hi: <$half>::ZERO,
-            };
-        }
-
         impl std::fmt::LowerHex for $name {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                 write!(f, "{:x}{:x}", self.hi, self.lo)
@@ -605,6 +627,35 @@ macro_rules! uint_impl {
             fn shr(self, rhs: u32) -> Self::Output {
                 self.wrapping_shr(rhs)
             }
+        }
+
+        impl Element for $name {
+            /// The size of this integer type in bits.
+            const BITS: u32 = <$half>::BITS * 2;
+
+            /// The smallest value that can be represented by this integer type.
+            const MIN: Self = Self {
+                lo: <$half>::ZERO,
+                hi: <$half>::ZERO,
+            };
+
+            /// The largest value that can be represented by this integer type.
+            const MAX: Self = Self {
+                lo: <$half>::MAX,
+                hi: <$half>::MAX,
+            };
+
+            /// The one value that can be represented by this integer type.
+            const ONE: Self = Self {
+                lo: <$half>::ONE,
+                hi: <$half>::ZERO,
+            };
+
+            /// The zero value that can be represented by this integer type.
+            const ZERO: Self = Self {
+                lo: <$half>::ZERO,
+                hi: <$half>::ZERO,
+            };
         }
 
         impl $name {

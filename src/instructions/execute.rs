@@ -17,6 +17,7 @@ use crate::instructions::v_register::{
 };
 use crate::memory::Memory;
 use ckb_vm_definitions::{instructions as insts, registers::RA, VLEN};
+use uintxx::{Element, U128, U16, U32, U64, U8};
 
 pub fn execute_instruction<Mac: Machine>(
     inst: Instruction,
@@ -947,7 +948,7 @@ pub fn execute_instruction<Mac: Machine>(
                 let elem = machine.memory_mut().load8(&addr)?.to_u8();
                 let vreg = machine.get_vregister(rd);
                 if let VRegister::U8(ref mut data) = vreg {
-                    data[i as usize % 256] = elem;
+                    data[i as usize % 256] = U8(elem);
                 } else {
                     return Err(Error::Unexpected);
                 }
@@ -963,7 +964,7 @@ pub fn execute_instruction<Mac: Machine>(
                 let elem = machine.memory_mut().load16(&addr)?.to_u16();
                 let vreg = machine.get_vregister(rd);
                 if let VRegister::U16(ref mut data) = vreg {
-                    data[i as usize % 128] = elem;
+                    data[i as usize % 128] = U16(elem);
                 } else {
                     return Err(Error::Unexpected);
                 }
@@ -979,7 +980,7 @@ pub fn execute_instruction<Mac: Machine>(
                 let elem = machine.memory_mut().load32(&addr)?.to_u32();
                 let vreg = machine.get_vregister(rd);
                 if let VRegister::U32(ref mut data) = vreg {
-                    data[i as usize % 64] = elem;
+                    data[i as usize % 64] = U32(elem);
                 } else {
                     return Err(Error::Unexpected);
                 }
@@ -995,7 +996,7 @@ pub fn execute_instruction<Mac: Machine>(
                 let elem = machine.memory_mut().load64(&addr)?.to_u64();
                 let vreg = machine.get_vregister(rd);
                 if let VRegister::U64(ref mut data) = vreg {
-                    data[i as usize % 32] = elem;
+                    data[i as usize % 32] = U64(elem);
                 } else {
                     return Err(Error::Unexpected);
                 }
@@ -1013,7 +1014,7 @@ pub fn execute_instruction<Mac: Machine>(
                 let elem = u128::from_le_bytes(buf);
                 let vreg = machine.get_vregister(rd);
                 if let VRegister::U128(ref mut data) = vreg {
-                    data[i as usize % 16] = elem;
+                    data[i as usize % 16] = U128(elem);
                 } else {
                     return Err(Error::Unexpected);
                 }
@@ -1086,7 +1087,7 @@ pub fn execute_instruction<Mac: Machine>(
                     let elem = data[i as usize % (VLEN as usize / bits)];
                     machine
                         .memory_mut()
-                        .store_bytes(addr.to_u64(), &elem.to_le_bytes())?;
+                        .store_bytes(addr.to_u64(), &elem.0.to_le_bytes())?;
                 } else {
                     return Err(Error::Unexpected);
                 }
@@ -1105,7 +1106,7 @@ pub fn execute_instruction<Mac: Machine>(
                     let elem = data[i as usize % (VLEN as usize / bits)];
                     machine
                         .memory_mut()
-                        .store_bytes(addr.to_u64(), &elem.to_le_bytes())?;
+                        .store_bytes(addr.to_u64(), &elem.0.to_le_bytes())?;
                 } else {
                     return Err(Error::Unexpected);
                 }
@@ -1124,7 +1125,7 @@ pub fn execute_instruction<Mac: Machine>(
                     let elem = data[i as usize % (VLEN as usize / bits)];
                     machine
                         .memory_mut()
-                        .store_bytes(addr.to_u64(), &elem.to_le_bytes())?;
+                        .store_bytes(addr.to_u64(), &elem.0.to_le_bytes())?;
                 } else {
                     return Err(Error::Unexpected);
                 }
@@ -1143,7 +1144,7 @@ pub fn execute_instruction<Mac: Machine>(
                     let elem = data[i as usize % (VLEN as usize / bits)];
                     machine
                         .memory_mut()
-                        .store_bytes(addr.to_u64(), &elem.to_le_bytes())?;
+                        .store_bytes(addr.to_u64(), &elem.0.to_le_bytes())?;
                 } else {
                     return Err(Error::Unexpected);
                 }
@@ -1162,7 +1163,7 @@ pub fn execute_instruction<Mac: Machine>(
                     let elem = data[i as usize % (VLEN as usize / bits)];
                     machine
                         .memory_mut()
-                        .store_bytes(addr.to_u64(), &elem.to_le_bytes())?;
+                        .store_bytes(addr.to_u64(), &elem.0.to_le_bytes())?;
                 } else {
                     return Err(Error::Unexpected);
                 }
@@ -1946,7 +1947,7 @@ pub fn execute_instruction<Mac: Machine>(
                 }
                 VRegister::U128(data) => {
                     for (j, e) in data.iter().enumerate() {
-                        if *e == 1 {
+                        if *e == U128::ONE {
                             r = j as u64;
                             break;
                         }
@@ -1954,7 +1955,7 @@ pub fn execute_instruction<Mac: Machine>(
                 }
                 VRegister::U64(data) => {
                     for (j, e) in data.iter().enumerate() {
-                        if *e == 1 {
+                        if *e == U64::ONE {
                             r = j as u64;
                             break;
                         }
@@ -1962,7 +1963,7 @@ pub fn execute_instruction<Mac: Machine>(
                 }
                 VRegister::U32(data) => {
                     for (j, e) in data.iter().enumerate() {
-                        if *e == 1 {
+                        if *e == U32::ONE {
                             r = j as u64;
                             break;
                         }
@@ -1970,7 +1971,7 @@ pub fn execute_instruction<Mac: Machine>(
                 }
                 VRegister::U16(data) => {
                     for (j, e) in data.iter().enumerate() {
-                        if *e == 1 {
+                        if *e == U16::ONE {
                             r = j as u64;
                             break;
                         }
@@ -1978,7 +1979,7 @@ pub fn execute_instruction<Mac: Machine>(
                 }
                 VRegister::U8(data) => {
                     for (j, e) in data.iter().enumerate() {
-                        if *e == 1 {
+                        if *e == U8::ONE {
                             r = j as u64;
                             break;
                         }

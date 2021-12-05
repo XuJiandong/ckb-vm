@@ -3,7 +3,7 @@ use super::super::memory::Memory;
 use super::super::RISCV_MAX_MEMORY;
 use super::register::Register;
 use super::utils::update_register;
-use super::v_register::{VRegister, U1024, U256, U512};
+use super::v_register::{VRegister, U1024, U128, U16, U256, U32, U512, U64, U8};
 use super::{Error, Immediate, RegisterIndex, UImmediate};
 
 // Other instruction set functions common with RVC
@@ -407,14 +407,20 @@ pub fn set_vl<Mac: Machine>(
     if old_vsew != new_vsew {
         for i in 0..32 {
             let fr = &machine.vregisters()[i];
-            let le_byte = match fr {
-                VRegister::U8(data) => *data,
+            let le_byte: [u8; 256] = match fr {
+                VRegister::U8(data) => {
+                    let mut r = [0x00; 256];
+                    for (i, e) in data.iter().enumerate() {
+                        r[i] = e.0;
+                    }
+                    r
+                }
                 VRegister::U16(data) => {
                     let mut r = [0x00; 256];
                     for (i, e) in data.iter().enumerate() {
                         let start = i * 2;
                         let end = (i + 1) * 2;
-                        r[start..end].copy_from_slice(&e.to_le_bytes());
+                        r[start..end].copy_from_slice(&e.0.to_le_bytes());
                     }
                     r
                 }
@@ -423,7 +429,7 @@ pub fn set_vl<Mac: Machine>(
                     for (i, e) in data.iter().enumerate() {
                         let start = i * 4;
                         let end = (i + 1) * 4;
-                        r[start..end].copy_from_slice(&e.to_le_bytes());
+                        r[start..end].copy_from_slice(&e.0.to_le_bytes());
                     }
                     r
                 }
@@ -432,7 +438,7 @@ pub fn set_vl<Mac: Machine>(
                     for (i, e) in data.iter().enumerate() {
                         let start = i * 8;
                         let end = (i + 1) * 8;
-                        r[start..end].copy_from_slice(&e.to_le_bytes());
+                        r[start..end].copy_from_slice(&e.0.to_le_bytes());
                     }
                     r
                 }
@@ -441,7 +447,7 @@ pub fn set_vl<Mac: Machine>(
                     for (i, e) in data.iter().enumerate() {
                         let start = i * 16;
                         let end = (i + 1) * 16;
-                        r[start..end].copy_from_slice(&e.to_le_bytes());
+                        r[start..end].copy_from_slice(&e.0.to_le_bytes());
                     }
                     r
                 }
@@ -474,46 +480,52 @@ pub fn set_vl<Mac: Machine>(
                 }
             };
             let tr = match new_vsew {
-                8 => VRegister::U8(le_byte),
+                8 => {
+                    let mut r = [U8::default(); 256];
+                    for i in 0..256 {
+                        r[i] = U8(le_byte[i])
+                    }
+                    VRegister::U8(r)
+                }
                 16 => {
                     let mut buf = [0x00; 2];
-                    let mut r = [0x00; 128];
+                    let mut r = [U16::default(); 128];
                     for i in 0..128 {
                         buf.copy_from_slice(&le_byte[i * 2..(i + 1) * 2]);
-                        r[i] = u16::from_le_bytes(buf);
+                        r[i] = U16(u16::from_le_bytes(buf));
                     }
                     VRegister::U16(r)
                 }
                 32 => {
                     let mut buf = [0x00; 4];
-                    let mut r = [0x00; 64];
+                    let mut r = [U32::default(); 64];
                     for i in 0..64 {
                         buf.copy_from_slice(&le_byte[i * 4..(i + 1) * 4]);
-                        r[i] = u32::from_le_bytes(buf);
+                        r[i] = U32(u32::from_le_bytes(buf));
                     }
                     VRegister::U32(r)
                 }
                 64 => {
                     let mut buf = [0x00; 8];
-                    let mut r = [0x00; 32];
+                    let mut r = [U64::default(); 32];
                     for i in 0..32 {
                         buf.copy_from_slice(&le_byte[i * 8..(i + 1) * 8]);
-                        r[i] = u64::from_le_bytes(buf);
+                        r[i] = U64(u64::from_le_bytes(buf));
                     }
                     VRegister::U64(r)
                 }
                 128 => {
                     let mut buf = [0x00; 16];
-                    let mut r = [0x00; 16];
+                    let mut r = [U128::default(); 16];
                     for i in 0..16 {
                         buf.copy_from_slice(&le_byte[i * 16..(i + 1) * 16]);
-                        r[i] = u128::from_le_bytes(buf);
+                        r[i] = U128(u128::from_le_bytes(buf));
                     }
                     VRegister::U128(r)
                 }
                 256 => {
                     let mut buf = [0x00; 32];
-                    let mut r = [U256::MIN; 8];
+                    let mut r = [U256::default(); 8];
                     for i in 0..8 {
                         buf.copy_from_slice(&le_byte[i * 32..(i + 1) * 32]);
                         r[i] = U256::from_le_bytes(buf);
@@ -522,7 +534,7 @@ pub fn set_vl<Mac: Machine>(
                 }
                 512 => {
                     let mut buf = [0x00; 64];
-                    let mut r = [U512::MIN; 4];
+                    let mut r = [U512::default(); 4];
                     for i in 0..4 {
                         buf.copy_from_slice(&le_byte[i * 64..(i + 1) * 64]);
                         r[i] = U512::from_le_bytes(buf);
@@ -531,7 +543,7 @@ pub fn set_vl<Mac: Machine>(
                 }
                 1024 => {
                     let mut buf = [0x00; 128];
-                    let mut r = [U1024::MIN; 2];
+                    let mut r = [U1024::default(); 2];
                     for i in 0..2 {
                         buf.copy_from_slice(&le_byte[i * 128..(i + 1) * 128]);
                         r[i] = U1024::from_le_bytes(buf);
