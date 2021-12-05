@@ -16,6 +16,18 @@ pub trait Element:
     + std::ops::Neg
     + std::cmp::PartialOrd
     + std::cmp::Ord
+    + std::ops::Add
+    + std::ops::AddAssign
+    + std::ops::Sub
+    + std::ops::SubAssign
+    + std::ops::Mul
+    + std::ops::MulAssign
+    + std::ops::Div
+    + std::ops::DivAssign
+    + std::ops::Rem
+    + std::ops::RemAssign
+    + std::ops::Shl<u32>
+    + std::ops::Shr<u32>
 {
     /// The size of this integer type in bits.
     const BITS: u32;
@@ -63,40 +75,40 @@ macro_rules! uint_wrap_impl {
 
         impl std::ops::BitAnd for $name {
             type Output = Self;
-            fn bitand(self, rhs: Self) -> Self::Output {
-                Self(self.0 & rhs.0)
+            fn bitand(self, other: Self) -> Self::Output {
+                Self(self.0 & other.0)
             }
         }
 
         impl std::ops::BitAndAssign for $name {
-            fn bitand_assign(&mut self, rhs: Self) {
-                self.0 &= rhs.0
+            fn bitand_assign(&mut self, other: Self) {
+                self.0 &= other.0
             }
         }
 
         impl std::ops::BitOr for $name {
             type Output = Self;
-            fn bitor(self, rhs: Self) -> Self::Output {
-                Self(self.0 | rhs.0)
+            fn bitor(self, other: Self) -> Self::Output {
+                Self(self.0 | other.0)
             }
         }
 
         impl std::ops::BitOrAssign for $name {
-            fn bitor_assign(&mut self, rhs: Self) {
-                self.0 |= rhs.0
+            fn bitor_assign(&mut self, other: Self) {
+                self.0 |= other.0
             }
         }
 
         impl std::ops::BitXor for $name {
             type Output = Self;
-            fn bitxor(self, rhs: Self) -> Self::Output {
-                Self(self.0 ^ rhs.0)
+            fn bitxor(self, other: Self) -> Self::Output {
+                Self(self.0 ^ other.0)
             }
         }
 
         impl std::ops::BitXorAssign for $name {
-            fn bitxor_assign(&mut self, rhs: Self) {
-                self.0 ^= rhs.0
+            fn bitxor_assign(&mut self, other: Self) {
+                self.0 ^= other.0
             }
         }
 
@@ -115,14 +127,109 @@ macro_rules! uint_wrap_impl {
         }
 
         impl std::cmp::PartialOrd for $name {
-            fn partial_cmp(&self, rhs: &Self) -> Option<std::cmp::Ordering> {
-                return self.0.partial_cmp(&rhs.0);
+            fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+                return self.0.partial_cmp(&other.0);
             }
         }
 
         impl std::cmp::Ord for $name {
-            fn cmp(&self, rhs: &Self) -> std::cmp::Ordering {
-                self.0.cmp(&rhs.0)
+            fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+                self.0.cmp(&other.0)
+            }
+        }
+
+        impl std::ops::Add for $name {
+            type Output = Self;
+            fn add(self, other: Self) -> Self {
+                Self(self.0.wrapping_add(other.0))
+            }
+        }
+
+        impl std::ops::AddAssign for $name {
+            fn add_assign(&mut self, other: Self) {
+                self.0 = self.0.wrapping_add(other.0)
+            }
+        }
+
+        impl std::ops::Sub for $name {
+            type Output = Self;
+            fn sub(self, other: Self) -> Self::Output {
+                Self(self.0.wrapping_sub(other.0))
+            }
+        }
+
+        impl std::ops::SubAssign for $name {
+            fn sub_assign(&mut self, other: Self) {
+                self.0 = self.0.wrapping_sub(other.0)
+            }
+        }
+
+        impl std::ops::Mul for $name {
+            type Output = Self;
+            fn mul(self, other: Self) -> Self::Output {
+                Self(self.0.wrapping_mul(other.0))
+            }
+        }
+
+        impl std::ops::MulAssign for $name {
+            fn mul_assign(&mut self, other: Self) {
+                self.0 = self.0.wrapping_mul(other.0)
+            }
+        }
+
+        impl std::ops::Div for $name {
+            type Output = Self;
+            fn div(self, other: Self) -> Self::Output {
+                if other.0 == 0 {
+                    Self::MAX
+                } else {
+                    Self(self.0.wrapping_div(other.0))
+                }
+            }
+        }
+
+        impl std::ops::DivAssign for $name {
+            fn div_assign(&mut self, other: Self) {
+                self.0 = if other.0 == 0 {
+                    <$uint>::MAX
+                } else {
+                    self.0.wrapping_div(other.0)
+                }
+            }
+        }
+
+        impl std::ops::Rem for $name {
+            type Output = Self;
+            fn rem(self, other: Self) -> Self::Output {
+                if other.0 == 0 {
+                    self
+                } else {
+                    Self(self.0.wrapping_rem(other.0))
+                }
+            }
+        }
+
+        impl std::ops::RemAssign for $name {
+            fn rem_assign(&mut self, other: Self) {
+                self.0 = if other.0 == 0 {
+                    self.0
+                } else {
+                    self.0.wrapping_rem(other.0)
+                }
+            }
+        }
+
+        impl std::ops::Shl<u32> for $name {
+            type Output = Self;
+            fn shl(self, other: u32) -> Self::Output {
+                Self(self.0.wrapping_shl(other))
+            }
+        }
+
+        impl std::ops::Shr<u32> for $name {
+            type Output = Self;
+            fn shr(self, other: u32) -> Self::Output {
+                Self(self.0.wrapping_shr(other))
             }
         }
 
@@ -155,85 +262,6 @@ uint_wrap_impl!(U16, u16);
 uint_wrap_impl!(U32, u32);
 uint_wrap_impl!(U64, u64);
 uint_wrap_impl!(U128, u128);
-
-impl std::ops::Add for U128 {
-    type Output = Self;
-    fn add(self, rhs: Self) -> Self {
-        self.wrapping_add(rhs)
-    }
-}
-
-impl std::ops::AddAssign for U128 {
-    fn add_assign(&mut self, rhs: Self) {
-        self.0 = self.0.wrapping_add(rhs.0)
-    }
-}
-
-impl std::ops::Sub for U128 {
-    type Output = Self;
-    fn sub(self, rhs: Self) -> Self::Output {
-        self.wrapping_sub(rhs)
-    }
-}
-
-impl std::ops::SubAssign for U128 {
-    fn sub_assign(&mut self, rhs: Self) {
-        self.0 = self.0.wrapping_sub(rhs.0)
-    }
-}
-
-impl std::ops::Mul for U128 {
-    type Output = Self;
-    fn mul(self, rhs: Self) -> Self::Output {
-        self.wrapping_mul(rhs)
-    }
-}
-
-impl std::ops::MulAssign for U128 {
-    fn mul_assign(&mut self, rhs: Self) {
-        self.0 = self.0.wrapping_mul(rhs.0)
-    }
-}
-
-impl std::ops::Div for U128 {
-    type Output = Self;
-    fn div(self, rhs: Self) -> Self::Output {
-        self.wrapping_div(rhs)
-    }
-}
-
-impl std::ops::DivAssign for U128 {
-    fn div_assign(&mut self, rhs: Self) {
-        self.0 = self.0.wrapping_div(rhs.0);
-    }
-}
-
-impl std::ops::Rem for U128 {
-    type Output = Self;
-    fn rem(self, rhs: Self) -> Self::Output {
-        self.wrapping_rem(rhs)
-    }
-}
-
-impl std::ops::RemAssign for U128 {
-    fn rem_assign(&mut self, rhs: Self) {
-        self.0 = self.0.wrapping_rem(rhs.0);
-    }
-}
-
-impl std::ops::Shl<u32> for U128 {
-    type Output = Self;
-    fn shl(self, rhs: u32) -> Self::Output {
-        self.wrapping_shl(rhs)
-    }
-}
-
-impl std::ops::Shr<u32> for U128 {
-    type Output = Self;
-    fn shr(self, rhs: u32) -> Self::Output {
-        self.wrapping_shr(rhs)
-    }
-}
 
 impl U128 {
     /// Returns true if self is positive and false if the number is zero or negative.
