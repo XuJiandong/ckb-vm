@@ -15,10 +15,15 @@ pub trait Element:
     + std::ops::Not
     + std::ops::Neg
 {
+    /// The size of this integer type in bits.
     const BITS: u32;
+    /// The smallest value that can be represented by this integer type.
     const MIN: Self;
+    /// The largest value that can be represented by this integer type.
     const MAX: Self;
+    /// The one value that can be represented by this integer type.
     const ONE: Self;
+    /// The zero value that can be represented by this integer type.
     const ZERO: Self;
 }
 
@@ -99,19 +104,10 @@ macro_rules! uint_wrap_impl {
         }
 
         impl Element for $name {
-            /// The size of this integer type in bits.
             const BITS: u32 = <$uint>::BITS;
-
-            /// The smallest value that can be represented by this integer type.
             const MIN: Self = Self(0);
-
-            /// The largest value that can be represented by this integer type.
             const MAX: Self = Self(<$uint>::MAX);
-
-            /// The one value that can be represented by this integer type.
             const ONE: Self = Self(1);
-
-            /// The zero value that can be represented by this integer type.
             const ZERO: Self = Self(0);
         }
     };
@@ -630,28 +626,19 @@ macro_rules! uint_impl {
         }
 
         impl Element for $name {
-            /// The size of this integer type in bits.
             const BITS: u32 = <$half>::BITS * 2;
-
-            /// The smallest value that can be represented by this integer type.
             const MIN: Self = Self {
                 lo: <$half>::ZERO,
                 hi: <$half>::ZERO,
             };
-
-            /// The largest value that can be represented by this integer type.
             const MAX: Self = Self {
                 lo: <$half>::MAX,
                 hi: <$half>::MAX,
             };
-
-            /// The one value that can be represented by this integer type.
             const ONE: Self = Self {
                 lo: <$half>::ONE,
                 hi: <$half>::ZERO,
             };
-
-            /// The zero value that can be represented by this integer type.
             const ZERO: Self = Self {
                 lo: <$half>::ZERO,
                 hi: <$half>::ZERO,
