@@ -194,27 +194,27 @@ pub fn vfunc_sub_vv(
         }
         (VRegister::U128(a), VRegister::U128(b), VRegister::U128(ref mut r)) => {
             for i in 0..num {
-                r[i] = U128(a[i].0.wrapping_sub(b[i].0));
+                r[i] = a[i].wrapping_sub(b[i]);
             }
         }
         (VRegister::U64(a), VRegister::U64(b), VRegister::U64(ref mut r)) => {
             for i in 0..num {
-                r[i] = U64(a[i].0.wrapping_sub(b[i].0));
+                r[i] = a[i].wrapping_sub(b[i]);
             }
         }
         (VRegister::U32(a), VRegister::U32(b), VRegister::U32(ref mut r)) => {
             for i in 0..num {
-                r[i] = U32(a[i].0.wrapping_sub(b[i].0));
+                r[i] = a[i].wrapping_sub(b[i]);
             }
         }
         (VRegister::U16(a), VRegister::U16(b), VRegister::U16(ref mut r)) => {
             for i in 0..num {
-                r[i] = U16(a[i].0.wrapping_sub(b[i].0));
+                r[i] = a[i].wrapping_sub(b[i]);
             }
         }
         (VRegister::U8(a), VRegister::U8(b), VRegister::U8(ref mut r)) => {
             for i in 0..num {
-                r[i] = U8(a[i].0.wrapping_sub(b[i].0));
+                r[i] = a[i].wrapping_sub(b[i]);
             }
         }
         _ => return Err(Error::Unexpected),
@@ -231,42 +231,42 @@ pub fn vfunc_sub_vx(
     match (lhs, result) {
         (VRegister::U1024(a), VRegister::U1024(ref mut r)) => {
             for i in 0..num {
-                r[i] = a[i].wrapping_sub(U1024::from(rhs as i64));
+                r[i] = a[i].wrapping_sub(U1024::vx(rhs));
             }
         }
         (VRegister::U512(a), VRegister::U512(ref mut r)) => {
             for i in 0..num {
-                r[i] = a[i].wrapping_sub(U512::from(rhs as i64));
+                r[i] = a[i].wrapping_sub(U512::vx(rhs));
             }
         }
         (VRegister::U256(a), VRegister::U256(ref mut r)) => {
             for i in 0..num {
-                r[i] = a[i].wrapping_sub(U256::from(rhs as i64));
+                r[i] = a[i].wrapping_sub(U256::vx(rhs));
             }
         }
         (VRegister::U128(a), VRegister::U128(ref mut r)) => {
             for i in 0..num {
-                r[i] = U128(a[i].0.wrapping_sub(rhs as i64 as i128 as u128));
+                r[i] = a[i].wrapping_sub(U128::vx(rhs));
             }
         }
         (VRegister::U64(a), VRegister::U64(ref mut r)) => {
             for i in 0..num {
-                r[i] = U64(a[i].0.wrapping_sub(rhs));
+                r[i] = a[i].wrapping_sub(U64::vx(rhs));
             }
         }
         (VRegister::U32(a), VRegister::U32(ref mut r)) => {
             for i in 0..num {
-                r[i] = U32(a[i].0.wrapping_sub(rhs as u32));
+                r[i] = a[i].wrapping_sub(U32::vx(rhs));
             }
         }
         (VRegister::U16(a), VRegister::U16(ref mut r)) => {
             for i in 0..num {
-                r[i] = U16(a[i].0.wrapping_sub(rhs as u16));
+                r[i] = a[i].wrapping_sub(U16::vx(rhs));
             }
         }
         (VRegister::U8(a), VRegister::U8(ref mut r)) => {
             for i in 0..num {
-                r[i] = U8(a[i].0.wrapping_sub(rhs as u8));
+                r[i] = a[i].wrapping_sub(U8::vx(rhs));
             }
         }
         _ => return Err(Error::Unexpected),
@@ -283,42 +283,42 @@ pub fn vfunc_rsub_vx(
     match (lhs, result) {
         (VRegister::U1024(a), VRegister::U1024(ref mut r)) => {
             for i in 0..num {
-                r[i] = U1024::from(rhs as i64).wrapping_sub(a[i]);
+                r[i] = U1024::vx(rhs).wrapping_sub(a[i]);
             }
         }
         (VRegister::U512(a), VRegister::U512(ref mut r)) => {
             for i in 0..num {
-                r[i] = U512::from(rhs as i64).wrapping_sub(a[i]);
+                r[i] = U512::vx(rhs).wrapping_sub(a[i]);
             }
         }
         (VRegister::U256(a), VRegister::U256(ref mut r)) => {
             for i in 0..num {
-                r[i] = U256::from(rhs as i64).wrapping_sub(a[i]);
+                r[i] = U256::vx(rhs).wrapping_sub(a[i]);
             }
         }
         (VRegister::U128(a), VRegister::U128(ref mut r)) => {
             for i in 0..num {
-                r[i] = U128((rhs as i128 as u128).wrapping_sub(a[i].0));
+                r[i] = U128::vx(rhs).wrapping_sub(a[i]);
             }
         }
         (VRegister::U64(a), VRegister::U64(ref mut r)) => {
             for i in 0..num {
-                r[i] = U64((rhs).wrapping_sub(a[i].0));
+                r[i] = U64::vx(rhs).wrapping_sub(a[i]);
             }
         }
         (VRegister::U32(a), VRegister::U32(ref mut r)) => {
             for i in 0..num {
-                r[i] = U32((rhs as u32).wrapping_sub(a[i].0));
+                r[i] = U32::vx(rhs).wrapping_sub(a[i]);
             }
         }
         (VRegister::U16(a), VRegister::U16(ref mut r)) => {
             for i in 0..num {
-                r[i] = U16((rhs as u16).wrapping_sub(a[i].0));
+                r[i] = U16::vx(rhs).wrapping_sub(a[i]);
             }
         }
         (VRegister::U8(a), VRegister::U8(ref mut r)) => {
             for i in 0..num {
-                r[i] = U8((rhs as u8).wrapping_sub(a[i].0));
+                r[i] = U8::vx(rhs).wrapping_sub(a[i]);
             }
         }
         _ => return Err(Error::Unexpected),
@@ -335,42 +335,42 @@ pub fn vfunc_rsub_vi(
     match (lhs, result) {
         (VRegister::U1024(a), VRegister::U1024(ref mut r)) => {
             for i in 0..num {
-                r[i] = U1024::from(rhs).wrapping_sub(a[i]);
+                r[i] = U1024::vi(rhs).wrapping_sub(a[i]);
             }
         }
         (VRegister::U512(a), VRegister::U512(ref mut r)) => {
             for i in 0..num {
-                r[i] = U512::from(rhs).wrapping_sub(a[i]);
+                r[i] = U512::vi(rhs).wrapping_sub(a[i]);
             }
         }
         (VRegister::U256(a), VRegister::U256(ref mut r)) => {
             for i in 0..num {
-                r[i] = U256::from(rhs).wrapping_sub(a[i]);
+                r[i] = U256::vi(rhs).wrapping_sub(a[i]);
             }
         }
         (VRegister::U128(a), VRegister::U128(ref mut r)) => {
             for i in 0..num {
-                r[i] = U128((rhs as i128 as u128).wrapping_sub(a[i].0));
+                r[i] = U128::vi(rhs).wrapping_sub(a[i]);
             }
         }
         (VRegister::U64(a), VRegister::U64(ref mut r)) => {
             for i in 0..num {
-                r[i] = U64((rhs as i64 as u64).wrapping_sub(a[i].0));
+                r[i] = U64::vi(rhs).wrapping_sub(a[i]);
             }
         }
         (VRegister::U32(a), VRegister::U32(ref mut r)) => {
             for i in 0..num {
-                r[i] = U32((rhs as u32).wrapping_sub(a[i].0));
+                r[i] = U32::vi(rhs).wrapping_sub(a[i]);
             }
         }
         (VRegister::U16(a), VRegister::U16(ref mut r)) => {
             for i in 0..num {
-                r[i] = U16((rhs as i16 as u16).wrapping_sub(a[i].0));
+                r[i] = U16::vi(rhs).wrapping_sub(a[i]);
             }
         }
         (VRegister::U8(a), VRegister::U8(ref mut r)) => {
             for i in 0..num {
-                r[i] = U8((rhs as i8 as u8).wrapping_sub(a[i].0));
+                r[i] = U8::vi(rhs).wrapping_sub(a[i]);
             }
         }
         _ => return Err(Error::Unexpected),
