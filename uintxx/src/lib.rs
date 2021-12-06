@@ -256,7 +256,7 @@ macro_rules! uint_wrap_impl {
         }
 
         impl Element for $name {
-            const BITS: u32 = <$uint>::BITS;
+            const BITS: u32 = <$uint>::MIN.leading_zeros();
             const MIN: Self = Self(0);
             const MAX: Self = Self(<$uint>::MAX);
             const ONE: Self = Self(1);
