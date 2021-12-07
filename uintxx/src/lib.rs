@@ -84,6 +84,18 @@ pub trait Element:
     /// occur. If an overflow would have occurred then the wrapped value is returned.
     fn overflowing_mul(self, other: Self) -> (Self, bool);
 
+    /// Calculates the divisor when self is divided by rhs.
+    ///
+    /// Returns a tuple of the divisor along with a boolean indicating whether an arithmetic overflow would occur. Note
+    /// that for unsigned integers overflow never occurs, so the second value is always false.
+    fn overflowing_div(self, rhs: Self) -> (Self, bool);
+
+    /// Calculates the divisor when self is divided by rhs.
+    ///
+    /// Returns a tuple of the divisor along with a boolean indicating whether an arithmetic overflow would occur. Note
+    /// that for unsigned integers overflow never occurs, so the second value is always false.
+    fn overflowing_rem(self, rhs: Self) -> (Self, bool);
+
     /// Wrapping (modular) addition. Computes self + other, wrapping around at the boundary of the type.
     fn wrapping_add(self, other: Self) -> Self;
 
@@ -92,6 +104,16 @@ pub trait Element:
 
     /// Wrapping (modular) multiplication. Computes self * other, wrapping around at the boundary of the type.
     fn wrapping_mul(self, other: Self) -> Self;
+
+    /// Wrapping (modular) division. Computes self / rhs. Wrapped division on unsigned types is just normal division.
+    /// There’s no way wrapping could ever happen. This function exists, so that all operations are accounted for in
+    /// the wrapping operations.
+    fn wrapping_div(self, rhs: Self) -> Self;
+
+    /// Wrapping (modular) remainder. Computes self % rhs. Wrapped remainder calculation on unsigned types is just the
+    /// regular remainder calculation. There’s no way wrapping could ever happen. This function exists, so that all
+    /// operations are accounted for in the wrapping operations.
+    fn wrapping_rem(self, rhs: Self) -> Self;
 
     /// Panic-free bitwise shift-left; yields self << mask(rhs), where mask removes any high-order bits of rhs
     /// that would cause the shift to exceed the bitwidth of the type.
@@ -351,9 +373,17 @@ macro_rules! uint_wrap_impl {
                 (Self(r), b)
             }
 
-            fn overflowing_mul(self, rhs: Self) -> (Self, bool) {
-                let (r, b) = self.0.overflowing_mul(rhs.0);
+            fn overflowing_mul(self, other: Self) -> (Self, bool) {
+                let (r, b) = self.0.overflowing_mul(other.0);
                 (Self(r), b)
+            }
+
+            fn overflowing_div(self, other: Self) -> (Self, bool) {
+                (self.wrapping_div(other), false)
+            }
+
+            fn overflowing_rem(self, other: Self) -> (Self, bool) {
+                (self.wrapping_rem(other), false)
             }
 
             fn wrapping_add(self, other: Self) -> Self {
@@ -366,6 +396,22 @@ macro_rules! uint_wrap_impl {
 
             fn wrapping_mul(self, other: Self) -> Self {
                 Self(self.0.wrapping_mul(other.0))
+            }
+
+            fn wrapping_div(self, other: Self) -> Self {
+                if other.0 == 0 {
+                    Self::MAX
+                } else {
+                    Self(self.0.wrapping_div(other.0))
+                }
+            }
+
+            fn wrapping_rem(self, other: Self) -> Self {
+                if other.0 == 0 {
+                    self
+                } else {
+                    Self(self.0.wrapping_rem(other.0))
+                }
             }
 
             fn wrapping_shl(self, other: u32) -> Self {
@@ -428,40 +474,6 @@ uint_wrap_impl!(U16, u16, i16);
 uint_wrap_impl!(U32, u32, i32);
 uint_wrap_impl!(U64, u64, i64);
 uint_wrap_impl!(U128, u128, i128);
-
-impl U128 {
-    /// Calculates the divisor when self is divided by rhs.
-    ///
-    /// Returns a tuple of the divisor along with a boolean indicating whether an arithmetic overflow would occur. Note
-    /// that for unsigned integers overflow never occurs, so the second value is always false.
-    pub fn overflowing_div(self, rhs: Self) -> (Self, bool) {
-        let (r, b) = self.0.overflowing_div(rhs.0);
-        (Self(r), b)
-    }
-
-    /// Calculates the divisor when self is divided by rhs.
-    ///
-    /// Returns a tuple of the divisor along with a boolean indicating whether an arithmetic overflow would occur. Note
-    /// that for unsigned integers overflow never occurs, so the second value is always false.
-    pub fn overflowing_rem(self, rhs: Self) -> (Self, bool) {
-        let (r, b) = self.0.overflowing_rem(rhs.0);
-        (Self(r), b)
-    }
-
-    /// Wrapping (modular) division. Computes self / rhs. Wrapped division on unsigned types is just normal division.
-    /// There’s no way wrapping could ever happen. This function exists, so that all operations are accounted for in
-    /// the wrapping operations.
-    pub fn wrapping_div(self, rhs: Self) -> Self {
-        Self(self.0.wrapping_div(rhs.0))
-    }
-
-    /// Wrapping (modular) remainder. Computes self % rhs. Wrapped remainder calculation on unsigned types is just the
-    /// regular remainder calculation. There’s no way wrapping could ever happen. This function exists, so that all
-    /// operations are accounted for in the wrapping operations.
-    pub fn wrapping_rem(self, rhs: Self) -> Self {
-        Self(self.0.wrapping_rem(rhs.0))
-    }
-}
 
 macro_rules! u128_impl_from {
     ($from:ty) => {
@@ -760,6 +772,14 @@ macro_rules! uint_impl {
                 (lo, hi_overflow_mul || hi_overflow_add)
             }
 
+            fn overflowing_div(self, rhs: Self) -> (Self, bool) {
+                (self.wrapping_div(rhs), false)
+            }
+
+            fn overflowing_rem(self, rhs: Self) -> (Self, bool) {
+                (self.wrapping_rem(rhs), false)
+            }
+
             fn wrapping_add(self, other: Self) -> Self {
                 let (lo, carry) = self.lo.overflowing_add(other.lo);
                 let hi = self.hi.wrapping_add(other.hi).wrapping_add(<$half>::from(carry));
@@ -778,6 +798,22 @@ macro_rules! uint_impl {
                     .wrapping_add(self.lo.wrapping_mul(other.hi))
                     .wrapping_add(self.hi.wrapping_mul(other.lo));
                 Self { lo, hi }
+            }
+
+            fn wrapping_div(self, rhs: Self) -> Self {
+                if rhs == Self::MIN {
+                    Self::MAX
+                } else {
+                    self.div(rhs).0
+                }
+            }
+
+            fn wrapping_rem(self, rhs: Self) -> Self {
+                if rhs == Self::MIN {
+                    self
+                } else {
+                    self.div(rhs).1
+                }
             }
 
             fn wrapping_shl(self, other: u32) -> Self {
@@ -895,22 +931,6 @@ macro_rules! uint_impl {
                 return r;
             }
 
-            /// Calculates the divisor when self is divided by rhs.
-            ///
-            /// Returns a tuple of the divisor along with a boolean indicating whether an arithmetic overflow would
-            /// occur. Note that for unsigned integers overflow never occurs, so the second value is always false.
-            pub fn overflowing_div(self, rhs: Self) -> (Self, bool) {
-                (self.wrapping_div(rhs), false)
-            }
-
-            /// Calculates the divisor when self is divided by rhs.
-            ///
-            /// Returns a tuple of the divisor along with a boolean indicating whether an arithmetic overflow would
-            /// occur. Note that for unsigned integers overflow never occurs, so the second value is always false.
-            pub fn overflowing_rem(self, rhs: Self) -> (Self, bool) {
-                (self.wrapping_rem(rhs), false)
-            }
-
             /// div_half_0 returns the quotient and remainder of (hi, lo) divided by y: quo = (hi, lo)/y,
             /// rem = (hi, lo)%y with the dividend bits' upper half in parameter hi and the lower half in parameter lo.
             /// div_half_0 panics for y == 0 (division by zero) or y <= hi (quotient overflow).
@@ -988,28 +1008,6 @@ macro_rules! uint_impl {
                     r = r - rhs;
                 }
                 (q, r)
-            }
-
-            /// Wrapping (modular) division. Computes self / rhs. Wrapped division on unsigned types is just normal
-            /// division. There’s no way wrapping could ever happen. This function exists, so that all operations are
-            /// accounted for in the wrapping operations.
-            pub fn wrapping_div(self, rhs: Self) -> Self {
-                if rhs == Self::MIN {
-                    Self::MAX
-                } else {
-                    self.div(rhs).0
-                }
-            }
-
-            /// Wrapping (modular) remainder. Computes self % rhs. Wrapped remainder calculation on unsigned types is
-            /// just the regular remainder calculation. There’s no way wrapping could ever happen. This function exists,
-            /// so that all operations are accounted for in the wrapping operations.
-            pub fn wrapping_rem(self, rhs: Self) -> Self {
-                if rhs == Self::MIN {
-                    self
-                } else {
-                    self.div(rhs).1
-                }
             }
         }
     };
