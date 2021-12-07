@@ -88,6 +88,14 @@ pub trait Element:
     /// range of the type, rather than the bits shifted out of the LHS being returned to the other end. The
     /// primitive integer types all implement a rotate_left function, which may be what you want instead.
     fn wrapping_shl(self, other: u32) -> Self;
+
+    /// Panic-free bitwise shift-right; yields self >> mask(rhs), where mask removes any high-order bits of rhs
+    /// that would cause the shift to exceed the bitwidth of the type.
+    ///
+    /// Note that this is not the same as a rotate-right; the RHS of a wrapping shift-right is restricted to
+    /// the range of the type, rather than the bits shifted out of the LHS being returned to the other end. The
+    /// primitive integer types all implement a rotate_right function, which may be what you want instead.
+    fn wrapping_shr(self, other: u32) -> Self;
 }
 
 macro_rules! uint_wrap_impl {
@@ -328,6 +336,10 @@ macro_rules! uint_wrap_impl {
             fn wrapping_shl(self, other: u32) -> Self {
                 Self(self.0.wrapping_shl(other))
             }
+
+            fn wrapping_shr(self, rhs: u32) -> Self {
+                Self(self.0.wrapping_shr(rhs))
+            }
         }
     };
 }
@@ -409,20 +421,6 @@ impl U128 {
     /// operations are accounted for in the wrapping operations.
     pub fn wrapping_rem(self, rhs: Self) -> Self {
         Self(self.0.wrapping_rem(rhs.0))
-    }
-
-    /// Panic-free bitwise shift-right; yields self >> mask(rhs), where mask removes any high-order bits of rhs
-    /// that would cause the shift to exceed the bitwidth of the type.
-    ///
-    /// Note that this is not the same as a rotate-right; the RHS of a wrapping shift-right is restricted to
-    /// the range of the type, rather than the bits shifted out of the LHS being returned to the other end. The
-    /// primitive integer types all implement a rotate_right function, which may be what you want instead.
-    pub fn wrapping_shr(self, rhs: u32) -> Self {
-        if rhs >= 128 {
-            U128(0)
-        } else {
-            Self(self.0.wrapping_shr(rhs))
-        }
     }
 
     /// Panic-free bitwise sign shift-right.
@@ -773,6 +771,22 @@ macro_rules! uint_impl {
                     }
                 }
             }
+
+            fn wrapping_shr(self, other: u32) -> Self {
+                let shamt = other % Self::BITS;
+                if shamt < Self::BITS / 2 {
+                    Self {
+                        lo: self.lo.wrapping_shr(shamt)
+                            | self.hi.wrapping_shl(1).wrapping_shl((Self::BITS / 2) - 1 - shamt),
+                        hi: self.hi.wrapping_shr(shamt),
+                    }
+                } else {
+                    Self {
+                        lo: self.hi.wrapping_shr(shamt - Self::BITS / 2),
+                        hi: <$half>::MIN,
+                    }
+                }
+            }
         }
 
         impl $name {
@@ -966,29 +980,6 @@ macro_rules! uint_impl {
                     self
                 } else {
                     self.div(rhs).1
-                }
-            }
-
-            /// Panic-free bitwise shift-right; yields self >> mask(rhs), where mask removes any high-order bits of rhs
-            /// that would cause the shift to exceed the bitwidth of the type.
-            ///
-            /// Note that this is not the same as a rotate-right; the RHS of a wrapping shift-right is restricted to
-            /// the range of the type, rather than the bits shifted out of the LHS being returned to the other end. The
-            /// primitive integer types all implement a rotate_right function, which may be what you want instead.
-            pub fn wrapping_shr(self, rhs: u32) -> Self {
-                if rhs < Self::BITS / 2 {
-                    Self {
-                        lo: self.lo.wrapping_shr(rhs)
-                            | self.hi.wrapping_shl(1).wrapping_shl((Self::BITS / 2) - 1 - rhs),
-                        hi: self.hi.wrapping_shr(rhs),
-                    }
-                } else if rhs < Self::BITS {
-                    Self {
-                        lo: self.hi.wrapping_shr(rhs - Self::BITS / 2),
-                        hi: <$half>::MIN,
-                    }
-                } else {
-                    Self::MIN
                 }
             }
 
