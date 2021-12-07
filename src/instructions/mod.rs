@@ -266,7 +266,7 @@ impl VVtype {
         let b = u64::from(op) >> 8 << 16;
         let c = u64::from(vd as u8) << 8;
         let d = u64::from(vs1 as u8) << 32;
-        let e = u64::from(vs2 as u8) << 32;
+        let e = u64::from(vs2 as u8) << 40;
         let f = if vm { 1u64 << 28 } else { 0 };
         VVtype(a | b | c | d | e | f)
     }
@@ -307,7 +307,7 @@ impl VXtype {
         let b = u64::from(op) >> 8 << 16;
         let c = u64::from(vd as u8) << 8;
         let d = u64::from(rs1 as u8) << 32;
-        let e = u64::from(vs2 as u8) << 32;
+        let e = u64::from(vs2 as u8) << 40;
         let f = if vm { 1u64 << 28 } else { 0 };
         VXtype(a | b | c | d | e | f)
     }
