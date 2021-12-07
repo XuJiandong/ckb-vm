@@ -108,6 +108,10 @@ pub trait Element:
 
     /// Panic-free bitwise sign shift-right.
     fn wrapping_sra(self, other: u32) -> Self;
+
+    /// Function mul_full returns the 256-bit product of x and y: (lo, hi) = x * y
+    /// with the product bits' upper half returned in hi and the lower half returned in lo.
+    fn widening_mul(self, other: Self) -> (Self, Self);
 }
 
 macro_rules! uint_wrap_impl {
@@ -368,6 +372,24 @@ macro_rules! uint_wrap_impl {
             fn wrapping_sra(self, other: u32) -> Self {
                 Self((self.0 as $sign).wrapping_shr(other) as $uint)
             }
+
+            /// Inspired by https://pkg.go.dev/math/bits@go1.17.2#Mul64
+            fn widening_mul(self, rhs: Self) -> (Self, Self) {
+                let lo = |x: $uint| x << Self::BITS / 2 >> Self::BITS / 2;
+                let hi = |x: $uint| x >> Self::BITS / 2;
+                let x0 = lo(self.0);
+                let x1 = hi(self.0);
+                let y0 = lo(rhs.0);
+                let y1 = hi(rhs.0);
+                let w0 = x0 * y0;
+                let t = x1 * y0 + hi(w0);
+                let w1 = lo(t);
+                let w2 = hi(t);
+                let w1 = w1 + x0 * y1;
+                let hi = x1 * y1 + w2 + hi(w1);
+                let lo = self.0.wrapping_mul(rhs.0);
+                (Self(lo), Self(hi))
+            }
         }
     };
 }
@@ -434,28 +456,6 @@ impl U128 {
     /// operations are accounted for in the wrapping operations.
     pub fn wrapping_rem(self, rhs: Self) -> Self {
         Self(self.0.wrapping_rem(rhs.0))
-    }
-
-    /// Function mul_full returns the 256-bit product of x and y: (lo, hi) = x * y
-    /// with the product bits' upper half returned in hi and the lower half returned in lo.
-    ///
-    /// Inspired by https://pkg.go.dev/math/bits@go1.17.2#Mul64
-    pub fn widening_mul(self, rhs: Self) -> (Self, Self) {
-        let lo = |x: u128| x & 0xffffffffffffffff;
-        let hi = |x: u128| x >> 64;
-
-        let x0 = lo(self.0);
-        let x1 = hi(self.0);
-        let y0 = lo(rhs.0);
-        let y1 = hi(rhs.0);
-        let w0 = x0 * y0;
-        let t = x1 * y0 + hi(w0);
-        let w1 = lo(t);
-        let w2 = hi(t);
-        let w1 = w1 + x0 * y1;
-        let hi = x1 * y1 + w2 + hi(w1);
-        let lo = self.0.wrapping_mul(rhs.0);
-        (Self(lo), Self(hi))
     }
 }
 
@@ -810,6 +810,24 @@ macro_rules! uint_impl {
                 let lo = self.wrapping_shr(shamt);
                 hi | lo
             }
+
+            fn widening_mul(self, rhs: Self) -> (Self, Self) {
+                let lo = |x: Self| Self::from(x.lo);
+                let hi = |x: Self| Self::from(x.hi);
+
+                let x0 = lo(self);
+                let x1 = hi(self);
+                let y0 = lo(rhs);
+                let y1 = hi(rhs);
+                let w0 = x0 * y0;
+                let t = x1 * y0 + hi(w0);
+                let w1 = lo(t);
+                let w2 = hi(t);
+                let w1 = w1 + x0 * y1;
+                let hi = x1 * y1 + w2 + hi(w1);
+                let lo = self.wrapping_mul(rhs);
+                (lo, hi)
+            }
         }
 
         impl $name {
@@ -989,28 +1007,6 @@ macro_rules! uint_impl {
                 } else {
                     self.div(rhs).1
                 }
-            }
-
-            /// Calculates the complete product self * rhs without the possibility to overflow.
-            ///
-            /// This returns the low-order (wrapping) bits and the high-order (overflow) bits of the result as two
-            /// separate values, in that order.
-            pub fn widening_mul(self, rhs: Self) -> (Self, Self) {
-                let lo = |x: Self| Self::from(x.lo);
-                let hi = |x: Self| Self::from(x.hi);
-
-                let x0 = lo(self);
-                let x1 = hi(self);
-                let y0 = lo(rhs);
-                let y1 = hi(rhs);
-                let w0 = x0 * y0;
-                let t = x1 * y0 + hi(w0);
-                let w1 = lo(t);
-                let w2 = hi(t);
-                let w1 = w1 + x0 * y1;
-                let hi = x1 * y1 + w2 + hi(w1);
-                let lo = self.wrapping_mul(rhs);
-                (lo, hi)
             }
         }
     };
