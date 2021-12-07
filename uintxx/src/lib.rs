@@ -61,6 +61,9 @@ pub trait Element:
     /// Returns true if self is negative and false if the number is zero or positive.
     fn is_negative(self) -> bool;
 
+    /// Returns the number of leading zeros in the binary representation of self.
+    fn leading_zeros(self) -> u32;
+
     /// Calculates self + other
     ///
     /// Returns a tuple of the addition along with a boolean indicating whether an arithmetic overflow would
@@ -334,6 +337,10 @@ macro_rules! uint_wrap_impl {
                 (self.0 as $sign).is_negative()
             }
 
+            fn leading_zeros(self) -> u32 {
+                self.0.leading_zeros()
+            }
+
             fn overflowing_add(self, other: Self) -> (Self, bool) {
                 let (r, b) = self.0.overflowing_add(other.0);
                 (Self(r), b)
@@ -423,11 +430,6 @@ uint_wrap_impl!(U64, u64, i64);
 uint_wrap_impl!(U128, u128, i128);
 
 impl U128 {
-    /// Returns the number of leading zeros in the binary representation of self.
-    pub fn leading_zeros(self) -> u32 {
-        self.0.leading_zeros()
-    }
-
     /// Calculates the divisor when self is divided by rhs.
     ///
     /// Returns a tuple of the divisor along with a boolean indicating whether an arithmetic overflow would occur. Note
@@ -718,6 +720,14 @@ macro_rules! uint_impl {
                 self != <$name>::MIN && self.wrapping_shr(Self::BITS - 1) == <$name>::ONE
             }
 
+            fn leading_zeros(self) -> u32 {
+                if self.hi == <$half>::MIN {
+                    Self::BITS / 2 + self.lo.leading_zeros()
+                } else {
+                    self.hi.leading_zeros()
+                }
+            }
+
             fn overflowing_add(self, other: Self) -> (Self, bool) {
                 let (lo, lo_carry) = self.lo.overflowing_add(other.lo);
                 let (hi, hi_carry_1) = self.hi.overflowing_add(<$half>::from(lo_carry));
@@ -883,15 +893,6 @@ macro_rules! uint_impl {
                 r[a..b].copy_from_slice(&self.lo.to_le_bytes());
                 r[c..d].copy_from_slice(&self.hi.to_le_bytes());
                 return r;
-            }
-
-            /// Returns the number of leading zeros in the binary representation of self.
-            pub fn leading_zeros(self) -> u32 {
-                if self.hi == <$half>::MIN {
-                    Self::BITS / 2 + self.lo.leading_zeros()
-                } else {
-                    self.hi.leading_zeros()
-                }
             }
 
             /// Calculates the divisor when self is divided by rhs.
