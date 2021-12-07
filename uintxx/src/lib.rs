@@ -49,6 +49,9 @@ pub trait Element:
     /// sign-extended to SEW bits, unless otherwise specified.
     fn vi(i: i32) -> Self;
 
+    /// Returns the lower 32 bits.
+    fn u32(self) -> u32;
+
     /// Calculates self + other
     ///
     /// Returns a tuple of the addition along with a boolean indicating whether an arithmetic overflow would
@@ -77,6 +80,14 @@ pub trait Element:
 
     /// Wrapping (modular) multiplication. Computes self * other, wrapping around at the boundary of the type.
     fn wrapping_mul(self, other: Self) -> Self;
+
+    /// Panic-free bitwise shift-left; yields self << mask(rhs), where mask removes any high-order bits of rhs
+    /// that would cause the shift to exceed the bitwidth of the type.
+    ///
+    /// Note that this is not the same as a rotate-left; the RHS of a wrapping shift-left is restricted to the
+    /// range of the type, rather than the bits shifted out of the LHS being returned to the other end. The
+    /// primitive integer types all implement a rotate_left function, which may be what you want instead.
+    fn wrapping_shl(self, other: u32) -> Self;
 }
 
 macro_rules! uint_wrap_impl {
@@ -251,7 +262,6 @@ macro_rules! uint_wrap_impl {
         impl std::ops::Shl<u32> for $name {
             type Output = Self;
             fn shl(self, other: u32) -> Self::Output {
-                assert!(other < Self::BITS);
                 Self(self.0.wrapping_shl(other))
             }
         }
@@ -259,7 +269,6 @@ macro_rules! uint_wrap_impl {
         impl std::ops::Shr<u32> for $name {
             type Output = Self;
             fn shr(self, other: u32) -> Self::Output {
-                assert!(other < Self::BITS);
                 Self(self.0.wrapping_shr(other))
             }
         }
@@ -283,6 +292,10 @@ macro_rules! uint_wrap_impl {
                 assert!(i >= -16);
                 assert!(i <= 15);
                 Self(i as $uint)
+            }
+
+            fn u32(self) -> u32 {
+                self.0 as u32
             }
 
             fn overflowing_add(self, other: Self) -> (Self, bool) {
@@ -311,6 +324,10 @@ macro_rules! uint_wrap_impl {
             fn wrapping_mul(self, other: Self) -> Self {
                 Self(self.0.wrapping_mul(other.0))
             }
+
+            fn wrapping_shl(self, other: u32) -> Self {
+                Self(self.0.wrapping_shl(other))
+            }
         }
     };
 }
@@ -330,11 +347,6 @@ impl U128 {
     /// Returns true if self is negative and false if the number is zero or positive.
     pub fn is_negative(self) -> bool {
         (self.0 as i128).is_negative()
-    }
-
-    /// Returns the lower 32 bits.
-    pub fn u32(self) -> u32 {
-        self.0 as u32
     }
 
     /// Returns the lower 64 bits.
@@ -397,20 +409,6 @@ impl U128 {
     /// operations are accounted for in the wrapping operations.
     pub fn wrapping_rem(self, rhs: Self) -> Self {
         Self(self.0.wrapping_rem(rhs.0))
-    }
-
-    /// Panic-free bitwise shift-left; yields self << mask(rhs), where mask removes any high-order bits of rhs
-    /// that would cause the shift to exceed the bitwidth of the type.
-    ///
-    /// Note that this is not the same as a rotate-left; the RHS of a wrapping shift-left is restricted to the
-    /// range of the type, rather than the bits shifted out of the LHS being returned to the other end. The
-    /// primitive integer types all implement a rotate_left function, which may be what you want instead.
-    pub fn wrapping_shl(self, rhs: u32) -> Self {
-        if rhs >= 128 {
-            return U128(0);
-        } else {
-            Self(self.0.wrapping_shl(rhs))
-        }
     }
 
     /// Panic-free bitwise shift-right; yields self >> mask(rhs), where mask removes any high-order bits of rhs
@@ -513,52 +511,52 @@ macro_rules! uint_impl {
 
         impl std::ops::BitAnd for $name {
             type Output = Self;
-            fn bitand(self, rhs: Self) -> Self::Output {
+            fn bitand(self, other: Self) -> Self::Output {
                 Self {
-                    lo: self.lo & rhs.lo,
-                    hi: self.hi & rhs.hi,
+                    lo: self.lo & other.lo,
+                    hi: self.hi & other.hi,
                 }
             }
         }
 
         impl std::ops::BitAndAssign for $name {
-            fn bitand_assign(&mut self, rhs: Self) {
-                self.lo &= rhs.lo;
-                self.hi &= rhs.hi;
+            fn bitand_assign(&mut self, other: Self) {
+                self.lo &= other.lo;
+                self.hi &= other.hi;
             }
         }
 
         impl std::ops::BitOr for $name {
             type Output = Self;
-            fn bitor(self, rhs: Self) -> Self::Output {
+            fn bitor(self, other: Self) -> Self::Output {
                 Self {
-                    lo: self.lo | rhs.lo,
-                    hi: self.hi | rhs.hi,
+                    lo: self.lo | other.lo,
+                    hi: self.hi | other.hi,
                 }
             }
         }
 
         impl std::ops::BitOrAssign for $name {
-            fn bitor_assign(&mut self, rhs: Self) {
-                self.lo |= rhs.lo;
-                self.hi |= rhs.hi;
+            fn bitor_assign(&mut self, other: Self) {
+                self.lo |= other.lo;
+                self.hi |= other.hi;
             }
         }
 
         impl std::ops::BitXor for $name {
             type Output = Self;
-            fn bitxor(self, rhs: Self) -> Self::Output {
+            fn bitxor(self, other: Self) -> Self::Output {
                 Self {
-                    lo: self.lo ^ rhs.lo,
-                    hi: self.hi ^ rhs.hi,
+                    lo: self.lo ^ other.lo,
+                    hi: self.hi ^ other.hi,
                 }
             }
         }
 
         impl std::ops::BitXorAssign for $name {
-            fn bitxor_assign(&mut self, rhs: Self) {
-                self.lo ^= rhs.lo;
-                self.hi ^= rhs.hi;
+            fn bitxor_assign(&mut self, other: Self) {
+                self.lo ^= other.lo;
+                self.hi ^= other.hi;
             }
         }
 
@@ -580,98 +578,98 @@ macro_rules! uint_impl {
         }
 
         impl std::cmp::PartialOrd for $name {
-            fn partial_cmp(&self, rhs: &Self) -> Option<std::cmp::Ordering> {
-                Some(self.cmp(rhs))
+            fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+                Some(self.cmp(other))
             }
         }
 
         impl std::cmp::Ord for $name {
-            fn cmp(&self, rhs: &Self) -> std::cmp::Ordering {
-                let hi_cmp = self.hi.cmp(&rhs.hi);
+            fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+                let hi_cmp = self.hi.cmp(&other.hi);
                 if hi_cmp != std::cmp::Ordering::Equal {
                     hi_cmp
                 } else {
-                    self.lo.cmp(&rhs.lo)
+                    self.lo.cmp(&other.lo)
                 }
             }
         }
 
         impl std::ops::Add for $name {
             type Output = Self;
-            fn add(self, rhs: Self) -> Self {
-                self.wrapping_add(rhs)
+            fn add(self, other: Self) -> Self {
+                self.wrapping_add(other)
             }
         }
 
         impl std::ops::AddAssign for $name {
-            fn add_assign(&mut self, rhs: Self) {
-                *self = self.wrapping_add(rhs)
+            fn add_assign(&mut self, other: Self) {
+                *self = self.wrapping_add(other)
             }
         }
 
         impl std::ops::Sub for $name {
             type Output = Self;
-            fn sub(self, rhs: Self) -> Self::Output {
-                self.wrapping_sub(rhs)
+            fn sub(self, other: Self) -> Self::Output {
+                self.wrapping_sub(other)
             }
         }
 
         impl std::ops::SubAssign for $name {
-            fn sub_assign(&mut self, rhs: Self) {
-                *self = self.wrapping_sub(rhs)
+            fn sub_assign(&mut self, other: Self) {
+                *self = self.wrapping_sub(other)
             }
         }
 
         impl std::ops::Mul for $name {
             type Output = Self;
-            fn mul(self, rhs: Self) -> Self::Output {
-                self.wrapping_mul(rhs)
+            fn mul(self, other: Self) -> Self::Output {
+                self.wrapping_mul(other)
             }
         }
 
         impl std::ops::MulAssign for $name {
-            fn mul_assign(&mut self, rhs: Self) {
-                *self = self.wrapping_mul(rhs)
+            fn mul_assign(&mut self, other: Self) {
+                *self = self.wrapping_mul(other)
             }
         }
 
         impl std::ops::Div for $name {
             type Output = Self;
-            fn div(self, rhs: Self) -> Self::Output {
-                self.wrapping_div(rhs)
+            fn div(self, other: Self) -> Self::Output {
+                self.wrapping_div(other)
             }
         }
 
         impl std::ops::DivAssign for $name {
-            fn div_assign(&mut self, rhs: Self) {
-                *self = self.wrapping_div(rhs)
+            fn div_assign(&mut self, other: Self) {
+                *self = self.wrapping_div(other)
             }
         }
 
         impl std::ops::Rem for $name {
             type Output = Self;
-            fn rem(self, rhs: Self) -> Self::Output {
-                self.wrapping_rem(rhs)
+            fn rem(self, other: Self) -> Self::Output {
+                self.wrapping_rem(other)
             }
         }
 
         impl std::ops::RemAssign for $name {
-            fn rem_assign(&mut self, rhs: Self) {
-                *self = self.wrapping_rem(rhs);
+            fn rem_assign(&mut self, other: Self) {
+                *self = self.wrapping_rem(other);
             }
         }
 
         impl std::ops::Shl<u32> for $name {
             type Output = Self;
-            fn shl(self, rhs: u32) -> Self::Output {
-                self.wrapping_shl(rhs)
+            fn shl(self, other: u32) -> Self::Output {
+                self.wrapping_shl(other)
             }
         }
 
         impl std::ops::Shr<u32> for $name {
             type Output = Self;
-            fn shr(self, rhs: u32) -> Self::Output {
-                self.wrapping_shr(rhs)
+            fn shr(self, other: u32) -> Self::Output {
+                self.wrapping_shr(other)
             }
         }
 
@@ -702,6 +700,10 @@ macro_rules! uint_impl {
                 assert!(i >= -16);
                 assert!(i <= 15);
                 Self::from(i)
+            }
+
+            fn u32(self) -> u32 {
+                self.lo.u32()
             }
 
             fn overflowing_add(self, other: Self) -> (Self, bool) {
@@ -748,12 +750,28 @@ macro_rules! uint_impl {
                 Self { lo, hi }
             }
 
-            fn wrapping_mul(self, rhs: Self) -> Self {
-                let (lo, hi) = self.lo.widening_mul(rhs.lo);
+            fn wrapping_mul(self, other: Self) -> Self {
+                let (lo, hi) = self.lo.widening_mul(other.lo);
                 let hi = hi
-                    .wrapping_add(self.lo.wrapping_mul(rhs.hi))
-                    .wrapping_add(self.hi.wrapping_mul(rhs.lo));
+                    .wrapping_add(self.lo.wrapping_mul(other.hi))
+                    .wrapping_add(self.hi.wrapping_mul(other.lo));
                 Self { lo, hi }
+            }
+
+            fn wrapping_shl(self, other: u32) -> Self {
+                let shamt = other % Self::BITS;
+                if shamt < Self::BITS / 2 {
+                    Self {
+                        lo: self.lo.wrapping_shl(shamt),
+                        hi: self.hi.wrapping_shl(shamt)
+                            | self.lo.wrapping_shr(1).wrapping_shr((Self::BITS / 2) - 1 - shamt),
+                    }
+                } else {
+                    Self {
+                        lo: <$half>::MIN,
+                        hi: self.lo.wrapping_shl(shamt - Self::BITS / 2),
+                    }
+                }
             }
         }
 
@@ -766,11 +784,6 @@ macro_rules! uint_impl {
             /// Returns true if self is negative and false if the number is zero or positive.
             pub fn is_negative(self) -> bool {
                 self != <$name>::MIN && self.wrapping_shr(Self::BITS - 1) == <$name>::ONE
-            }
-
-            /// Returns the lower 32 bits.
-            pub fn u32(self) -> u32 {
-                self.lo.u32()
             }
 
             /// Returns the lower 64 bits.
@@ -953,29 +966,6 @@ macro_rules! uint_impl {
                     self
                 } else {
                     self.div(rhs).1
-                }
-            }
-
-            /// Panic-free bitwise shift-left; yields self << mask(rhs), where mask removes any high-order bits of rhs
-            /// that would cause the shift to exceed the bitwidth of the type.
-            ///
-            /// Note that this is not the same as a rotate-left; the RHS of a wrapping shift-left is restricted to the
-            /// range of the type, rather than the bits shifted out of the LHS being returned to the other end. The
-            /// primitive integer types all implement a rotate_left function, which may be what you want instead.
-            pub fn wrapping_shl(self, rhs: u32) -> Self {
-                if rhs < Self::BITS / 2 {
-                    Self {
-                        lo: self.lo.wrapping_shl(rhs),
-                        hi: self.hi.wrapping_shl(rhs)
-                            | self.lo.wrapping_shr(1).wrapping_shr((Self::BITS / 2) - 1 - rhs),
-                    }
-                } else if rhs < Self::BITS {
-                    Self {
-                        lo: <$half>::MIN,
-                        hi: self.lo.wrapping_shl(rhs - Self::BITS / 2),
-                    }
-                } else {
-                    Self::MIN
                 }
             }
 
