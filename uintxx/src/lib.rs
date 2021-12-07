@@ -89,13 +89,13 @@ pub trait Element:
     ///
     /// Returns a tuple of the divisor along with a boolean indicating whether an arithmetic overflow would occur. Note
     /// that for unsigned integers overflow never occurs, so the second value is always false.
-    fn overflowing_div(self, rhs: Self) -> (Self, bool);
+    fn overflowing_div(self, other: Self) -> (Self, bool);
 
     /// Calculates the divisor when self is divided by rhs.
     ///
     /// Returns a tuple of the divisor along with a boolean indicating whether an arithmetic overflow would occur. Note
     /// that for unsigned integers overflow never occurs, so the second value is always false.
-    fn overflowing_rem(self, rhs: Self) -> (Self, bool);
+    fn overflowing_rem(self, other: Self) -> (Self, bool);
 
     /// Wrapping (modular) addition. Computes self + other, wrapping around at the boundary of the type.
     fn wrapping_add(self, other: Self) -> Self;
@@ -109,12 +109,12 @@ pub trait Element:
     /// Wrapping (modular) division. Computes self / rhs. Wrapped division on unsigned types is just normal division.
     /// There’s no way wrapping could ever happen. This function exists, so that all operations are accounted for in
     /// the wrapping operations.
-    fn wrapping_div(self, rhs: Self) -> Self;
+    fn wrapping_div(self, other: Self) -> Self;
 
     /// Wrapping (modular) remainder. Computes self % rhs. Wrapped remainder calculation on unsigned types is just the
     /// regular remainder calculation. There’s no way wrapping could ever happen. This function exists, so that all
     /// operations are accounted for in the wrapping operations.
-    fn wrapping_rem(self, rhs: Self) -> Self;
+    fn wrapping_rem(self, other: Self) -> Self;
 
     /// Panic-free bitwise shift-left; yields self << mask(rhs), where mask removes any high-order bits of rhs
     /// that would cause the shift to exceed the bitwidth of the type.
@@ -434,20 +434,20 @@ macro_rules! uint_wrap_impl {
             }
 
             /// Inspired by https://pkg.go.dev/math/bits@go1.17.2#Mul64
-            fn widening_mul(self, rhs: Self) -> (Self, Self) {
+            fn widening_mul(self, other: Self) -> (Self, Self) {
                 let lo = |x: $uint| x << Self::BITS / 2 >> Self::BITS / 2;
                 let hi = |x: $uint| x >> Self::BITS / 2;
                 let x0 = lo(self.0);
                 let x1 = hi(self.0);
-                let y0 = lo(rhs.0);
-                let y1 = hi(rhs.0);
+                let y0 = lo(other.0);
+                let y1 = hi(other.0);
                 let w0 = x0 * y0;
                 let t = x1 * y0 + hi(w0);
                 let w1 = lo(t);
                 let w2 = hi(t);
                 let w1 = w1 + x0 * y1;
                 let hi = x1 * y1 + w2 + hi(w1);
-                let lo = self.0.wrapping_mul(rhs.0);
+                let lo = self.0.wrapping_mul(other.0);
                 (Self(lo), Self(hi))
             }
         }
