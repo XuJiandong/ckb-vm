@@ -391,6 +391,28 @@ macro_rules! uint_wrap_impl {
                 (Self(lo), Self(hi))
             }
         }
+
+        impl $name {
+            /// Create a native endian integer value from its representation as a byte array in big endian.
+            pub const fn from_be_bytes(bytes: [u8; Self::BITS as usize / 8]) -> Self {
+                Self(<$uint>::from_be_bytes(bytes))
+            }
+
+            /// Create a native endian integer value from its representation as a byte array in little endian.
+            pub const fn from_le_bytes(bytes: [u8; Self::BITS as usize / 8]) -> Self {
+                Self(<$uint>::from_le_bytes(bytes))
+            }
+
+            /// Return the memory representation of this integer as a byte array in big-endian (network) byte order.
+            pub fn to_be_bytes(self) -> [u8; Self::BITS as usize / 8] {
+                self.0.to_be_bytes()
+            }
+
+            /// Return the memory representation of this integer as a byte array in little-endian byte order.
+            pub fn to_le_bytes(self) -> [u8; Self::BITS as usize / 8] {
+                self.0.to_le_bytes()
+            }
+        }
     };
 }
 
@@ -401,26 +423,6 @@ uint_wrap_impl!(U64, u64, i64);
 uint_wrap_impl!(U128, u128, i128);
 
 impl U128 {
-    /// Create a native endian integer value from its representation as a byte array in big endian.
-    pub const fn from_be_bytes(bytes: [u8; 16]) -> Self {
-        Self(u128::from_be_bytes(bytes))
-    }
-
-    /// Create a native endian integer value from its representation as a byte array in little endian.
-    pub const fn from_le_bytes(bytes: [u8; 16]) -> Self {
-        Self(u128::from_le_bytes(bytes))
-    }
-
-    /// Return the memory representation of this integer as a byte array in big-endian (network) byte order.
-    pub fn to_be_bytes(self) -> [u8; 16] {
-        self.0.to_be_bytes()
-    }
-
-    /// Return the memory representation of this integer as a byte array in little-endian byte order.
-    pub fn to_le_bytes(self) -> [u8; 16] {
-        self.0.to_le_bytes()
-    }
-
     /// Returns the number of leading zeros in the binary representation of self.
     pub fn leading_zeros(self) -> u32 {
         self.0.leading_zeros()

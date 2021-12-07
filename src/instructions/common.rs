@@ -492,7 +492,7 @@ pub fn set_vl<Mac: Machine>(
                     let mut r = [U16::default(); 128];
                     for i in 0..128 {
                         buf.copy_from_slice(&le_byte[i * 2..(i + 1) * 2]);
-                        r[i] = U16(u16::from_le_bytes(buf));
+                        r[i] = U16::from_le_bytes(buf);
                     }
                     VRegister::U16(r)
                 }
@@ -501,7 +501,7 @@ pub fn set_vl<Mac: Machine>(
                     let mut r = [U32::default(); 64];
                     for i in 0..64 {
                         buf.copy_from_slice(&le_byte[i * 4..(i + 1) * 4]);
-                        r[i] = U32(u32::from_le_bytes(buf));
+                        r[i] = U32::from_le_bytes(buf);
                     }
                     VRegister::U32(r)
                 }
@@ -510,7 +510,7 @@ pub fn set_vl<Mac: Machine>(
                     let mut r = [U64::default(); 32];
                     for i in 0..32 {
                         buf.copy_from_slice(&le_byte[i * 8..(i + 1) * 8]);
-                        r[i] = U64(u64::from_le_bytes(buf));
+                        r[i] = U64::from_le_bytes(buf);
                     }
                     VRegister::U64(r)
                 }
@@ -519,7 +519,7 @@ pub fn set_vl<Mac: Machine>(
                     let mut r = [U128::default(); 16];
                     for i in 0..16 {
                         buf.copy_from_slice(&le_byte[i * 16..(i + 1) * 16]);
-                        r[i] = U128(u128::from_le_bytes(buf));
+                        r[i] = U128::from_le_bytes(buf);
                     }
                     VRegister::U128(r)
                 }

@@ -1087,7 +1087,7 @@ pub fn execute_instruction<Mac: Machine>(
                     let elem = data[i as usize % (VLEN as usize / bits)];
                     machine
                         .memory_mut()
-                        .store_bytes(addr.to_u64(), &elem.0.to_le_bytes())?;
+                        .store_bytes(addr.to_u64(), &elem.to_le_bytes())?;
                 } else {
                     return Err(Error::Unexpected);
                 }
@@ -1106,7 +1106,7 @@ pub fn execute_instruction<Mac: Machine>(
                     let elem = data[i as usize % (VLEN as usize / bits)];
                     machine
                         .memory_mut()
-                        .store_bytes(addr.to_u64(), &elem.0.to_le_bytes())?;
+                        .store_bytes(addr.to_u64(), &elem.to_le_bytes())?;
                 } else {
                     return Err(Error::Unexpected);
                 }
@@ -1125,7 +1125,7 @@ pub fn execute_instruction<Mac: Machine>(
                     let elem = data[i as usize % (VLEN as usize / bits)];
                     machine
                         .memory_mut()
-                        .store_bytes(addr.to_u64(), &elem.0.to_le_bytes())?;
+                        .store_bytes(addr.to_u64(), &elem.to_le_bytes())?;
                 } else {
                     return Err(Error::Unexpected);
                 }
@@ -1144,7 +1144,7 @@ pub fn execute_instruction<Mac: Machine>(
                     let elem = data[i as usize % (VLEN as usize / bits)];
                     machine
                         .memory_mut()
-                        .store_bytes(addr.to_u64(), &elem.0.to_le_bytes())?;
+                        .store_bytes(addr.to_u64(), &elem.to_le_bytes())?;
                 } else {
                     return Err(Error::Unexpected);
                 }
@@ -1163,7 +1163,7 @@ pub fn execute_instruction<Mac: Machine>(
                     let elem = data[i as usize % (VLEN as usize / bits)];
                     machine
                         .memory_mut()
-                        .store_bytes(addr.to_u64(), &elem.0.to_le_bytes())?;
+                        .store_bytes(addr.to_u64(), &elem.to_le_bytes())?;
                 } else {
                     return Err(Error::Unexpected);
                 }
