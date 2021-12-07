@@ -52,6 +52,9 @@ pub trait Element:
     /// Returns the lower 32 bits.
     fn u32(self) -> u32;
 
+    /// Returns the lower 64 bits.
+    fn u64(self) -> u64;
+
     /// Returns true if self is positive and false if the number is zero or negative.
     fn is_positive(self) -> bool;
 
@@ -315,6 +318,10 @@ macro_rules! uint_wrap_impl {
                 self.0 as u32
             }
 
+            fn u64(self) -> u64 {
+                self.0 as u64
+            }
+
             fn is_positive(self) -> bool {
                 (self.0 as $sign).is_positive()
             }
@@ -372,16 +379,6 @@ uint_wrap_impl!(U64, u64, i64);
 uint_wrap_impl!(U128, u128, i128);
 
 impl U128 {
-    /// Returns true if self is positive and false if the number is zero or negative.
-    pub fn is_positive(self) -> bool {
-        (self.0 as i128).is_positive()
-    }
-
-    /// Returns true if self is negative and false if the number is zero or positive.
-    pub fn is_negative(self) -> bool {
-        (self.0 as i128).is_negative()
-    }
-
     /// Returns the lower 64 bits.
     pub fn u64(self) -> u64 {
         self.0 as u64
@@ -712,6 +709,10 @@ macro_rules! uint_impl {
                 self.lo.u32()
             }
 
+            fn u64(self) -> u64 {
+                self.lo.u64()
+            }
+
             fn is_positive(self) -> bool {
                 self != <$name>::MIN && self.wrapping_shr(Self::BITS - 1) == <$name>::MIN
             }
@@ -817,11 +818,6 @@ macro_rules! uint_impl {
         }
 
         impl $name {
-            /// Returns the lower 64 bits.
-            pub fn u64(self) -> u64 {
-                self.lo.u64()
-            }
-
             /// Create a native endian integer value from its representation as a byte array in big endian.
             pub fn from_be_bytes(bytes: [u8; $bits / 8]) -> Self {
                 let mut t = [0u8; $bits / 8 / 2];
