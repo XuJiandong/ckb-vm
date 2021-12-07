@@ -141,7 +141,7 @@ pub trait Element:
 }
 
 macro_rules! uint_wrap_impl {
-    ($name:ident, $uint:ty, $sign:ty) => {
+    ($name:ident, $uint:ty, $sint:ty) => {
         #[derive(Copy, Clone, Default, PartialEq, Eq)]
         pub struct $name(pub $uint);
 
@@ -359,11 +359,11 @@ macro_rules! uint_wrap_impl {
             }
 
             fn is_positive(self) -> bool {
-                (self.0 as $sign).is_positive()
+                (self.0 as $sint).is_positive()
             }
 
             fn is_negative(self) -> bool {
-                (self.0 as $sign).is_negative()
+                (self.0 as $sint).is_negative()
             }
 
             fn leading_zeros(self) -> u32 {
@@ -430,7 +430,7 @@ macro_rules! uint_wrap_impl {
             }
 
             fn wrapping_sra(self, other: u32) -> Self {
-                Self((self.0 as $sign).wrapping_shr(other) as $uint)
+                Self((self.0 as $sint).wrapping_shr(other) as $uint)
             }
 
             /// Inspired by https://pkg.go.dev/math/bits@go1.17.2#Mul64
