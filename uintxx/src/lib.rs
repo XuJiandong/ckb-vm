@@ -52,6 +52,12 @@ pub trait Element:
     /// Returns the lower 32 bits.
     fn u32(self) -> u32;
 
+    /// Returns true if self is positive and false if the number is zero or negative.
+    fn is_positive(self) -> bool;
+
+    /// Returns true if self is negative and false if the number is zero or positive.
+    fn is_negative(self) -> bool;
+
     /// Calculates self + other
     ///
     /// Returns a tuple of the addition along with a boolean indicating whether an arithmetic overflow would
@@ -307,6 +313,14 @@ macro_rules! uint_wrap_impl {
 
             fn u32(self) -> u32 {
                 self.0 as u32
+            }
+
+            fn is_positive(self) -> bool {
+                (self.0 as $sign).is_positive()
+            }
+
+            fn is_negative(self) -> bool {
+                (self.0 as $sign).is_negative()
             }
 
             fn overflowing_add(self, other: Self) -> (Self, bool) {
@@ -698,6 +712,14 @@ macro_rules! uint_impl {
                 self.lo.u32()
             }
 
+            fn is_positive(self) -> bool {
+                self != <$name>::MIN && self.wrapping_shr(Self::BITS - 1) == <$name>::MIN
+            }
+
+            fn is_negative(self) -> bool {
+                self != <$name>::MIN && self.wrapping_shr(Self::BITS - 1) == <$name>::ONE
+            }
+
             fn overflowing_add(self, other: Self) -> (Self, bool) {
                 let (lo, lo_carry) = self.lo.overflowing_add(other.lo);
                 let (hi, hi_carry_1) = self.hi.overflowing_add(<$half>::from(lo_carry));
@@ -795,16 +817,6 @@ macro_rules! uint_impl {
         }
 
         impl $name {
-            /// Returns true if self is positive and false if the number is zero or negative.
-            pub fn is_positive(self) -> bool {
-                self != <$name>::MIN && self.wrapping_shr(Self::BITS - 1) == <$name>::MIN
-            }
-
-            /// Returns true if self is negative and false if the number is zero or positive.
-            pub fn is_negative(self) -> bool {
-                self != <$name>::MIN && self.wrapping_shr(Self::BITS - 1) == <$name>::ONE
-            }
-
             /// Returns the lower 64 bits.
             pub fn u64(self) -> u64 {
                 self.lo.u64()
