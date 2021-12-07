@@ -454,12 +454,12 @@ macro_rules! uint_wrap_impl {
 
         impl $name {
             /// Create a native endian integer value from its representation as a byte array in big endian.
-            pub const fn from_be_bytes(bytes: [u8; Self::BITS as usize / 8]) -> Self {
+            pub fn from_be_bytes(bytes: [u8; Self::BITS as usize / 8]) -> Self {
                 Self(<$uint>::from_be_bytes(bytes))
             }
 
             /// Create a native endian integer value from its representation as a byte array in little endian.
-            pub const fn from_le_bytes(bytes: [u8; Self::BITS as usize / 8]) -> Self {
+            pub fn from_le_bytes(bytes: [u8; Self::BITS as usize / 8]) -> Self {
                 Self(<$uint>::from_le_bytes(bytes))
             }
 
@@ -779,30 +779,30 @@ macro_rules! uint_impl {
                 (Self { lo, hi }, hi_borrow_1 || hi_borrow_2)
             }
 
-            fn overflowing_mul(self, rhs: Self) -> (Self, bool) {
-                let (hi, hi_overflow_mul) = match (self.hi, rhs.hi) {
-                    (_, <$half>::MIN) => self.hi.overflowing_mul(rhs.lo),
-                    (<$half>::MIN, _) => rhs.hi.overflowing_mul(self.lo),
+            fn overflowing_mul(self, other: Self) -> (Self, bool) {
+                let (hi, hi_overflow_mul) = match (self.hi, other.hi) {
+                    (_, <$half>::MIN) => self.hi.overflowing_mul(other.lo),
+                    (<$half>::MIN, _) => other.hi.overflowing_mul(self.lo),
                     _ => (
                         self.hi
-                            .wrapping_mul(rhs.lo)
-                            .wrapping_add(rhs.hi.wrapping_mul(self.lo)),
+                            .wrapping_mul(other.lo)
+                            .wrapping_add(other.hi.wrapping_mul(self.lo)),
                         true,
                     ),
                 };
-                let lo = self.lo.widening_mul(rhs.lo);
+                let lo = self.lo.widening_mul(other.lo);
                 let lo = Self { lo: lo.0, hi: lo.1 };
                 let (hi, hi_overflow_add) = lo.hi.overflowing_add(hi);
                 let lo = Self { lo: lo.lo, hi: hi };
                 (lo, hi_overflow_mul || hi_overflow_add)
             }
 
-            fn overflowing_div(self, rhs: Self) -> (Self, bool) {
-                (self.wrapping_div(rhs), false)
+            fn overflowing_div(self, other: Self) -> (Self, bool) {
+                (self.wrapping_div(other), false)
             }
 
-            fn overflowing_rem(self, rhs: Self) -> (Self, bool) {
-                (self.wrapping_rem(rhs), false)
+            fn overflowing_rem(self, other: Self) -> (Self, bool) {
+                (self.wrapping_rem(other), false)
             }
 
             fn wrapping_add(self, other: Self) -> Self {
@@ -825,19 +825,19 @@ macro_rules! uint_impl {
                 Self { lo, hi }
             }
 
-            fn wrapping_div(self, rhs: Self) -> Self {
-                if rhs == Self::MIN {
+            fn wrapping_div(self, other: Self) -> Self {
+                if other == Self::MIN {
                     Self::MAX
                 } else {
-                    self.div(rhs).0
+                    self.div(other).0
                 }
             }
 
-            fn wrapping_rem(self, rhs: Self) -> Self {
-                if rhs == Self::MIN {
+            fn wrapping_rem(self, other: Self) -> Self {
+                if other == Self::MIN {
                     self
                 } else {
-                    self.div(rhs).1
+                    self.div(other).1
                 }
             }
 
@@ -884,21 +884,21 @@ macro_rules! uint_impl {
                 hi | lo
             }
 
-            fn widening_mul(self, rhs: Self) -> (Self, Self) {
+            fn widening_mul(self, other: Self) -> (Self, Self) {
                 let lo = |x: Self| Self::from(x.lo);
                 let hi = |x: Self| Self::from(x.hi);
 
                 let x0 = lo(self);
                 let x1 = hi(self);
-                let y0 = lo(rhs);
-                let y1 = hi(rhs);
+                let y0 = lo(other);
+                let y1 = hi(other);
                 let w0 = x0 * y0;
                 let t = x1 * y0 + hi(w0);
                 let w1 = lo(t);
                 let w2 = hi(t);
                 let w1 = w1 + x0 * y1;
                 let hi = x1 * y1 + w2 + hi(w1);
-                let lo = self.wrapping_mul(rhs);
+                let lo = self.wrapping_mul(other);
                 (lo, hi)
             }
         }
@@ -1013,24 +1013,24 @@ macro_rules! uint_impl {
             }
 
             /// Inspired by https://github.com/Pilatuz/bigx/blob/8615506d17c5/uint128.go#L291
-            fn div(self, rhs: Self) -> (Self, Self) {
-                if rhs.hi == <$half>::ZERO {
-                    let (q, r) = self.div_half_1(rhs.lo);
+            fn div(self, other: Self) -> (Self, Self) {
+                if other.hi == <$half>::ZERO {
+                    let (q, r) = self.div_half_1(other.lo);
                     return (q, Self::from(r));
                 }
-                let n = rhs.hi.leading_zeros();
+                let n = other.hi.leading_zeros();
                 let u1 = self >> 1;
-                let v1 = rhs << n;
+                let v1 = other << n;
                 let (tq, _) = u1.div_half_0(v1.hi);
                 let mut tq = tq >> (Self::BITS / 2 - 1 - n);
                 if tq != <$half>::ZERO {
                     tq -= <$half>::ONE;
                 }
                 let mut q = Self::from(tq);
-                let mut r = self - rhs * q;
-                if r >= rhs {
+                let mut r = self - other * q;
+                if r >= other {
                     q += Self::ONE;
-                    r = r - rhs;
+                    r = r - other;
                 }
                 (q, r)
             }
