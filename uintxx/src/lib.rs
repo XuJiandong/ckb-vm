@@ -96,10 +96,13 @@ pub trait Element:
     /// the range of the type, rather than the bits shifted out of the LHS being returned to the other end. The
     /// primitive integer types all implement a rotate_right function, which may be what you want instead.
     fn wrapping_shr(self, other: u32) -> Self;
+
+    /// Panic-free bitwise sign shift-right.
+    fn wrapping_sra(self, other: u32) -> Self;
 }
 
 macro_rules! uint_wrap_impl {
-    ($name:ident, $uint:ty) => {
+    ($name:ident, $uint:ty, $sign:ty) => {
         #[derive(Copy, Clone, Default, PartialEq, Eq)]
         pub struct $name(pub $uint);
 
@@ -337,18 +340,22 @@ macro_rules! uint_wrap_impl {
                 Self(self.0.wrapping_shl(other))
             }
 
-            fn wrapping_shr(self, rhs: u32) -> Self {
-                Self(self.0.wrapping_shr(rhs))
+            fn wrapping_shr(self, other: u32) -> Self {
+                Self(self.0.wrapping_shr(other))
+            }
+
+            fn wrapping_sra(self, other: u32) -> Self {
+                Self((self.0 as $sign).wrapping_shr(other) as $uint)
             }
         }
     };
 }
 
-uint_wrap_impl!(U8, u8);
-uint_wrap_impl!(U16, u16);
-uint_wrap_impl!(U32, u32);
-uint_wrap_impl!(U64, u64);
-uint_wrap_impl!(U128, u128);
+uint_wrap_impl!(U8, u8, i8);
+uint_wrap_impl!(U16, u16, i16);
+uint_wrap_impl!(U32, u32, i32);
+uint_wrap_impl!(U64, u64, i64);
+uint_wrap_impl!(U128, u128, i128);
 
 impl U128 {
     /// Returns true if self is positive and false if the number is zero or negative.
@@ -421,19 +428,6 @@ impl U128 {
     /// operations are accounted for in the wrapping operations.
     pub fn wrapping_rem(self, rhs: Self) -> Self {
         Self(self.0.wrapping_rem(rhs.0))
-    }
-
-    /// Panic-free bitwise sign shift-right.
-    pub fn wrapping_sra(self, rhs: u32) -> Self {
-        if rhs >= 128 {
-            if self.is_negative() {
-                Self::MAX
-            } else {
-                Self::MIN
-            }
-        } else {
-            Self((self.0 as i128).wrapping_shr(rhs) as u128)
-        }
     }
 
     /// Function mul_full returns the 256-bit product of x and y: (lo, hi) = x * y
@@ -787,6 +781,17 @@ macro_rules! uint_impl {
                     }
                 }
             }
+
+            fn wrapping_sra(self, other: u32) -> Self {
+                let shamt = other % Self::BITS;
+                let hi = if self.is_negative() {
+                    Self::MAX << (Self::BITS - shamt)
+                } else {
+                    Self::MIN
+                };
+                let lo = self.wrapping_shr(shamt);
+                hi | lo
+            }
         }
 
         impl $name {
@@ -980,28 +985,6 @@ macro_rules! uint_impl {
                     self
                 } else {
                     self.div(rhs).1
-                }
-            }
-
-            /// Panic-free bitwise sign shift-right.
-            pub fn wrapping_sra(self, rhs: u32) -> Self {
-                if self.is_negative() {
-                    if rhs < Self::BITS / 2 {
-                        Self {
-                            lo: self.lo.wrapping_shr(rhs)
-                                | self.hi.wrapping_shl(1).wrapping_shl(Self::BITS / 2 - 1 - rhs),
-                            hi: self.hi.wrapping_sra(rhs),
-                        }
-                    } else if rhs < Self::BITS {
-                        Self {
-                            lo: self.hi.wrapping_sra(rhs - Self::BITS / 2),
-                            hi: <$half>::MAX,
-                        }
-                    } else {
-                        Self::MAX
-                    }
-                } else {
-                    self.wrapping_shr(rhs)
                 }
             }
 
