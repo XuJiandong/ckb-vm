@@ -28,6 +28,7 @@ pub trait Element:
     + std::ops::RemAssign
     + std::ops::Shl<u32>
     + std::ops::Shr<u32>
+    + From<bool>
 {
     /// The size of this integer type in bits.
     const BITS: u32;
@@ -159,6 +160,12 @@ macro_rules! uint_wrap_impl {
         impl std::fmt::Display for $name {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                 write!(f, "{:032x}", self.0)
+            }
+        }
+
+        impl std::convert::From<bool> for $name {
+            fn from(b: bool) -> Self {
+                Self(b as $uint)
             }
         }
 
@@ -469,33 +476,51 @@ macro_rules! uint_wrap_impl {
     };
 }
 
-uint_wrap_impl!(U8, u8, i8);
-uint_wrap_impl!(U16, u16, i16);
-uint_wrap_impl!(U32, u32, i32);
-uint_wrap_impl!(U64, u64, i64);
-uint_wrap_impl!(U128, u128, i128);
-
-macro_rules! u128_impl_from {
-    ($from:ty) => {
-        impl std::convert::From<$from> for U128 {
+macro_rules! uint_wrap_from_impl {
+    ($name:ty, $uint:ty, $from:ty) => {
+        impl From<$from> for $name {
             fn from(small: $from) -> Self {
-                Self(small as u128)
+                Self(small as $uint)
             }
         }
     };
 }
 
-u128_impl_from!(bool);
-u128_impl_from!(u8);
-u128_impl_from!(u16);
-u128_impl_from!(u32);
-u128_impl_from!(u64);
-u128_impl_from!(u128);
-u128_impl_from!(i8);
-u128_impl_from!(i16);
-u128_impl_from!(i32);
-u128_impl_from!(i64);
-u128_impl_from!(i128);
+uint_wrap_impl!(U8, u8, i8);
+uint_wrap_impl!(U16, u16, i16);
+uint_wrap_impl!(U32, u32, i32);
+uint_wrap_impl!(U64, u64, i64);
+uint_wrap_impl!(U128, u128, i128);
+uint_wrap_from_impl!(U8, u8, u8);
+uint_wrap_from_impl!(U8, u8, i8);
+uint_wrap_from_impl!(U16, u16, u8);
+uint_wrap_from_impl!(U16, u16, i8);
+uint_wrap_from_impl!(U16, u16, u16);
+uint_wrap_from_impl!(U16, u16, i16);
+uint_wrap_from_impl!(U32, u32, u8);
+uint_wrap_from_impl!(U32, u32, i8);
+uint_wrap_from_impl!(U32, u32, u16);
+uint_wrap_from_impl!(U32, u32, i16);
+uint_wrap_from_impl!(U32, u32, u32);
+uint_wrap_from_impl!(U32, u32, i32);
+uint_wrap_from_impl!(U64, u64, u8);
+uint_wrap_from_impl!(U64, u64, i8);
+uint_wrap_from_impl!(U64, u64, u16);
+uint_wrap_from_impl!(U64, u64, i16);
+uint_wrap_from_impl!(U64, u64, u32);
+uint_wrap_from_impl!(U64, u64, i32);
+uint_wrap_from_impl!(U64, u64, u64);
+uint_wrap_from_impl!(U64, u64, i64);
+uint_wrap_from_impl!(U128, u128, u8);
+uint_wrap_from_impl!(U128, u128, i8);
+uint_wrap_from_impl!(U128, u128, u16);
+uint_wrap_from_impl!(U128, u128, i16);
+uint_wrap_from_impl!(U128, u128, u32);
+uint_wrap_from_impl!(U128, u128, i32);
+uint_wrap_from_impl!(U128, u128, u64);
+uint_wrap_from_impl!(U128, u128, i64);
+uint_wrap_from_impl!(U128, u128, u128);
+uint_wrap_from_impl!(U128, u128, i128);
 
 macro_rules! uint_impl {
     ($name:ident, $half:ty, $bits:expr) => {
