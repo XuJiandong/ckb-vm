@@ -379,11 +379,6 @@ uint_wrap_impl!(U64, u64, i64);
 uint_wrap_impl!(U128, u128, i128);
 
 impl U128 {
-    /// Returns the lower 64 bits.
-    pub fn u64(self) -> u64 {
-        self.0 as u64
-    }
-
     /// Create a native endian integer value from its representation as a byte array in big endian.
     pub const fn from_be_bytes(bytes: [u8; 16]) -> Self {
         Self(u128::from_be_bytes(bytes))
