@@ -3,22 +3,105 @@ use super::{
     common, extract_opcode, instruction_length,
     utils::update_register,
     Instruction, Itype, R4type, Register, Rtype, Stype, Utype, VItype, VRegister, VVtype, VXtype,
-    U1024, U256, U512,
 };
+
 use crate::instructions::v_register::{
-    vfunc_add_vi, vfunc_add_vv, vfunc_add_vx, vfunc_div_vv, vfunc_div_vx, vfunc_divu_vv,
-    vfunc_divu_vx, vfunc_mseq_vi, vfunc_mseq_vv, vfunc_mseq_vx, vfunc_msgt_vi, vfunc_msgt_vx,
-    vfunc_msgtu_vi, vfunc_msgtu_vx, vfunc_msle_vi, vfunc_msle_vv, vfunc_msle_vx, vfunc_msleu_vi,
-    vfunc_msleu_vv, vfunc_msleu_vx, vfunc_mslt_vv, vfunc_mslt_vx, vfunc_msltu_vv, vfunc_msltu_vx,
-    vfunc_msne_vi, vfunc_msne_vv, vfunc_msne_vx, vfunc_mul_vv, vfunc_mul_vx, vfunc_rem_vv,
-    vfunc_rem_vx, vfunc_remu_vv, vfunc_remu_vx, vfunc_rsub_vi, vfunc_rsub_vx, vfunc_sll_vi,
-    vfunc_sll_vv, vfunc_sra_vi, vfunc_sra_vv, vfunc_srl_vi, vfunc_srl_vv, vfunc_sub_vv,
-    vfunc_sub_vx,
+    vfunc_add_vi, vfunc_add_vx, vfunc_div_vx, vfunc_divu_vx, vfunc_mseq_vi, vfunc_mseq_vx,
+    vfunc_msgt_vi, vfunc_msgt_vx, vfunc_msgtu_vi, vfunc_msgtu_vx, vfunc_msle_vi, vfunc_msle_vx,
+    vfunc_msleu_vi, vfunc_msleu_vx, vfunc_mslt_vx, vfunc_msltu_vx, vfunc_msne_vi, vfunc_msne_vx,
+    vfunc_mul_vx, vfunc_rem_vx, vfunc_remu_vx, vfunc_rsub_vi, vfunc_rsub_vx, vfunc_sll_vi,
+    vfunc_sra_vi, vfunc_srl_vi, vfunc_sub_vx,
 };
+
 use crate::memory::Memory;
 use ckb_vm_definitions::{instructions as insts, registers::RA, VLEN};
-use uintxx::{Element, U128, U16, U32, U64, U8};
+pub use uintxx::{Element, I1024, I256, I512, U1024, U128, U16, U256, U32, U512, U64, U8};
 
+type VVIteratorFunc =
+    fn(lhs: &VRegister, rhs: &VRegister, result: &mut VRegister, num: usize) -> Result<(), Error>;
+
+fn loop_vv<Mac: Machine>(
+    inst: Instruction,
+    machine: &mut Mac,
+    func: VVIteratorFunc,
+) -> Result<(), Error> {
+    let i = VVtype(inst);
+    let vlmax = VLEN / machine.get_vsew();
+    for j in 0..((machine.get_vl() - 1) / vlmax) + 1 {
+        let num = if machine.get_vl() > vlmax {
+            vlmax as usize
+        } else {
+            machine.get_vl() as usize
+        };
+        let vs1 = machine.vregisters()[i.vs1() as usize + j as usize];
+        let vs2 = machine.vregisters()[i.vs2() as usize + j as usize];
+        let vd = machine.get_vregister(i.vd() + j as usize);
+        func(&vs2, &vs1, vd, num)?;
+    }
+    Ok(())
+}
+macro_rules! vv_iterator_impl {
+    ($func_1024:tt,
+    $func_512:tt,
+    $func_256:tt,
+    $func_128:tt,
+    $func_64:tt,
+    $func_32:tt,
+    $func_16:tt,
+    $func_8:tt) => {
+        pub fn vv_itetator_func(
+            vs2: &VRegister,
+            vs1: &VRegister,
+            vd: &mut VRegister,
+            num: usize,
+        ) -> Result<(), Error> {
+            match (vs2, vs1, vd) {
+                (VRegister::U1024(a), VRegister::U1024(b), VRegister::U1024(ref mut r)) => {
+                    for i in 0..num {
+                        r[i] = $func_1024(&a[i], &b[i]);
+                    }
+                }
+                (VRegister::U512(a), VRegister::U512(b), VRegister::U512(ref mut r)) => {
+                    for i in 0..num {
+                        r[i] = $func_512(&a[i], &b[i]);
+                    }
+                }
+                (VRegister::U256(a), VRegister::U256(b), VRegister::U256(ref mut r)) => {
+                    for i in 0..num {
+                        r[i] = $func_256(&a[i], &b[i]);
+                    }
+                }
+                (VRegister::U128(a), VRegister::U128(b), VRegister::U128(ref mut r)) => {
+                    for i in 0..num {
+                        r[i] = $func_128(&a[i], &b[i]);
+                    }
+                }
+                (VRegister::U64(a), VRegister::U64(b), VRegister::U64(ref mut r)) => {
+                    for i in 0..num {
+                        r[i] = $func_64(&a[i], &b[i]);
+                    }
+                }
+                (VRegister::U32(a), VRegister::U32(b), VRegister::U32(ref mut r)) => {
+                    for i in 0..num {
+                        r[i] = $func_32(&a[i], &b[i]);
+                    }
+                }
+                (VRegister::U16(a), VRegister::U16(b), VRegister::U16(ref mut r)) => {
+                    for i in 0..num {
+                        r[i] = $func_16(&a[i], &b[i]);
+                    }
+                }
+                (VRegister::U8(a), VRegister::U8(b), VRegister::U8(ref mut r)) => {
+                    for i in 0..num {
+                        r[i] = $func_8(&a[i], &b[i]);
+                    }
+                }
+                _ => return Err(Error::Unexpected),
+            }
+            Ok(())
+        }
+    };
+}
 pub fn execute_instruction<Mac: Machine>(
     inst: Instruction,
     machine: &mut Mac,
@@ -1227,19 +1310,17 @@ pub fn execute_instruction<Mac: Machine>(
             }
         }
         insts::OP_VADD_VV => {
-            let i = VVtype(inst);
-            let vlmax = VLEN / machine.get_vsew();
-            for j in 0..((machine.get_vl() - 1) / vlmax) + 1 {
-                let num = if machine.get_vl() > vlmax {
-                    vlmax
-                } else {
-                    machine.get_vl()
-                };
-                let vs1 = machine.vregisters()[i.vs1() as usize + j as usize];
-                let vs2 = machine.vregisters()[i.vs2() as usize + j as usize];
-                let mut vd = machine.get_vregister(i.vd() + j as usize);
-                vfunc_add_vv(&vs2, &vs1, &mut vd, num as usize)?;
-            }
+            vv_iterator_impl!(
+                (|a: &U1024, b: &U1024| a.wrapping_add(*b)),
+                (|a: &U512, b: &U512| a.wrapping_add(*b)),
+                (|a: &U256, b: &U256| a.wrapping_add(*b)),
+                (|a: &U128, b: &U128| a.wrapping_add(*b)),
+                (|a: &U64, b: &U64| a.wrapping_add(*b)),
+                (|a: &U32, b: &U32| a.wrapping_add(*b)),
+                (|a: &U16, b: &U16| a.wrapping_add(*b)),
+                (|a: &U8, b: &U8| a.wrapping_add(*b))
+            );
+            loop_vv(inst, machine, vv_itetator_func)?;
         }
         insts::OP_VADD_VX => {
             let i = VXtype(inst);
@@ -1272,19 +1353,17 @@ pub fn execute_instruction<Mac: Machine>(
             }
         }
         insts::OP_VSUB_VV => {
-            let i = VVtype(inst);
-            let vlmax = VLEN / machine.get_vsew();
-            for j in 0..((machine.get_vl() - 1) / vlmax) + 1 {
-                let num = if machine.get_vl() > vlmax {
-                    vlmax
-                } else {
-                    machine.get_vl()
-                };
-                let vs1 = machine.vregisters()[i.vs1() as usize + j as usize];
-                let vs2 = machine.vregisters()[i.vs2() as usize + j as usize];
-                let mut vd = machine.get_vregister(i.vd() + j as usize);
-                vfunc_sub_vv(&vs2, &vs1, &mut vd, num as usize)?;
-            }
+            vv_iterator_impl!(
+                (|a: &U1024, b: &U1024| a.wrapping_sub(*b)),
+                (|a: &U512, b: &U512| a.wrapping_sub(*b)),
+                (|a: &U256, b: &U256| a.wrapping_sub(*b)),
+                (|a: &U128, b: &U128| a.wrapping_sub(*b)),
+                (|a: &U64, b: &U64| a.wrapping_sub(*b)),
+                (|a: &U32, b: &U32| a.wrapping_sub(*b)),
+                (|a: &U16, b: &U16| a.wrapping_sub(*b)),
+                (|a: &U8, b: &U8| a.wrapping_sub(*b))
+            );
+            loop_vv(inst, machine, vv_itetator_func)?;
         }
         insts::OP_VSUB_VX => {
             let i = VXtype(inst);
@@ -1332,19 +1411,17 @@ pub fn execute_instruction<Mac: Machine>(
             }
         }
         insts::OP_VMUL_VV => {
-            let i = VVtype(inst);
-            let vlmax = VLEN / machine.get_vsew();
-            for j in 0..((machine.get_vl() - 1) / vlmax) + 1 {
-                let num = if machine.get_vl() > vlmax {
-                    vlmax
-                } else {
-                    machine.get_vl()
-                };
-                let vs1 = machine.vregisters()[i.vs1() as usize + j as usize];
-                let vs2 = machine.vregisters()[i.vs2() as usize + j as usize];
-                let mut vd = machine.get_vregister(i.vd() + j as usize);
-                vfunc_mul_vv(&vs2, &vs1, &mut vd, num as usize)?;
-            }
+            vv_iterator_impl!(
+                (|a: &U1024, b: &U1024| a.wrapping_mul(*b)),
+                (|a: &U512, b: &U512| a.wrapping_mul(*b)),
+                (|a: &U256, b: &U256| a.wrapping_mul(*b)),
+                (|a: &U128, b: &U128| a.wrapping_mul(*b)),
+                (|a: &U64, b: &U64| a.wrapping_mul(*b)),
+                (|a: &U32, b: &U32| a.wrapping_mul(*b)),
+                (|a: &U16, b: &U16| a.wrapping_mul(*b)),
+                (|a: &U8, b: &U8| a.wrapping_mul(*b))
+            );
+            loop_vv(inst, machine, vv_itetator_func)?;
         }
         insts::OP_VMUL_VX => {
             let i = VXtype(inst);
@@ -1362,19 +1439,17 @@ pub fn execute_instruction<Mac: Machine>(
             }
         }
         insts::OP_VDIVU_VV => {
-            let i = VVtype(inst);
-            let vlmax = VLEN / machine.get_vsew();
-            for j in 0..((machine.get_vl() - 1) / vlmax) + 1 {
-                let num = if machine.get_vl() > vlmax {
-                    vlmax
-                } else {
-                    machine.get_vl()
-                };
-                let vs1 = machine.vregisters()[i.vs1() as usize + j as usize];
-                let vs2 = machine.vregisters()[i.vs2() as usize + j as usize];
-                let mut vd = machine.get_vregister(i.vd() + j as usize);
-                vfunc_divu_vv(&vs2, &vs1, &mut vd, num as usize)?;
-            }
+            vv_iterator_impl!(
+                (|a: &U1024, b: &U1024| a.wrapping_div(*b)),
+                (|a: &U512, b: &U512| a.wrapping_div(*b)),
+                (|a: &U256, b: &U256| a.wrapping_div(*b)),
+                (|a: &U128, b: &U128| a.wrapping_div(*b)),
+                (|a: &U64, b: &U64| a.wrapping_div(*b)),
+                (|a: &U32, b: &U32| a.wrapping_div(*b)),
+                (|a: &U16, b: &U16| a.wrapping_div(*b)),
+                (|a: &U8, b: &U8| a.wrapping_div(*b))
+            );
+            loop_vv(inst, machine, vv_itetator_func)?;
         }
         insts::OP_VDIVU_VX => {
             let i = VXtype(inst);
@@ -1392,19 +1467,47 @@ pub fn execute_instruction<Mac: Machine>(
             }
         }
         insts::OP_VDIV_VV => {
-            let i = VVtype(inst);
-            let vlmax = VLEN / machine.get_vsew();
-            for j in 0..((machine.get_vl() - 1) / vlmax) + 1 {
-                let num = if machine.get_vl() > vlmax {
-                    vlmax
+            vv_iterator_impl!(
+                (|a: &U1024, b: &U1024| I1024::from(*a).wrapping_div(I1024::from(*b)).uint),
+                (|a: &U512, b: &U512| I512::from(*a).wrapping_div(I512::from(*b)).uint),
+                (|a: &U256, b: &U256| I256::from(*a).wrapping_div(I256::from(*b)).uint),
+                (|a: &U128, b: &U128| if b.0 == 0 {
+                    U128::MAX
+                } else if a.0 == 1 << 127 && b.0 == u128::MAX {
+                    U128(1u128 << 127)
                 } else {
-                    machine.get_vl()
-                };
-                let vs1 = machine.vregisters()[i.vs1() as usize + j as usize];
-                let vs2 = machine.vregisters()[i.vs2() as usize + j as usize];
-                let mut vd = machine.get_vregister(i.vd() + j as usize);
-                vfunc_div_vv(&vs2, &vs1, &mut vd, num as usize)?;
-            }
+                    U128((a.0 as i128).wrapping_div(b.0 as i128) as u128)
+                }),
+                (|a: &U64, b: &U64| if b.0 == 0 {
+                    U64(u64::MAX)
+                } else if a.0 == 1 << 63 && b.0 == u64::MAX {
+                    U64(1u64 << 63)
+                } else {
+                    U64((a.0 as i64).wrapping_div(b.0 as i64) as u64)
+                }),
+                (|a: &U32, b: &U32| if b.0 == 0 {
+                    U32(u32::MAX)
+                } else if a.0 == 1 << 31 && b.0 == u32::MAX {
+                    U32(1u32 << 31)
+                } else {
+                    U32((a.0 as i32).wrapping_div(b.0 as i32) as u32)
+                }),
+                (|a: &U16, b: &U16| if b.0 == 0 {
+                    U16(u16::MAX)
+                } else if a.0 == 1 << 15 && b.0 == u16::MAX {
+                    U16(1u16 << 15)
+                } else {
+                    U16((a.0 as i16).wrapping_div(b.0 as i16) as u16)
+                }),
+                (|a: &U8, b: &U8| if b.0 == 0 {
+                    U8(u8::MAX)
+                } else if a.0 == 1 << 7 && b.0 == u8::MAX {
+                    U8(1u8 << 7)
+                } else {
+                    U8((a.0 as i8).wrapping_div(b.0 as i8) as u8)
+                })
+            );
+            loop_vv(inst, machine, vv_itetator_func)?;
         }
         insts::OP_VDIV_VX => {
             let i = VXtype(inst);
@@ -1422,19 +1525,17 @@ pub fn execute_instruction<Mac: Machine>(
             }
         }
         insts::OP_VREMU_VV => {
-            let i = VVtype(inst);
-            let vlmax = VLEN / machine.get_vsew();
-            for j in 0..((machine.get_vl() - 1) / vlmax) + 1 {
-                let num = if machine.get_vl() > vlmax {
-                    vlmax
-                } else {
-                    machine.get_vl()
-                };
-                let vs1 = machine.vregisters()[i.vs1() as usize + j as usize];
-                let vs2 = machine.vregisters()[i.vs2() as usize + j as usize];
-                let mut vd = machine.get_vregister(i.vd() + j as usize);
-                vfunc_remu_vv(&vs2, &vs1, &mut vd, num as usize)?;
-            }
+            vv_iterator_impl!(
+                (|a: &U1024, b: &U1024| a.wrapping_rem(*b)),
+                (|a: &U512, b: &U512| a.wrapping_rem(*b)),
+                (|a: &U256, b: &U256| a.wrapping_rem(*b)),
+                (|a: &U128, b: &U128| a.wrapping_rem(*b)),
+                (|a: &U64, b: &U64| a.wrapping_rem(*b)),
+                (|a: &U32, b: &U32| a.wrapping_rem(*b)),
+                (|a: &U16, b: &U16| a.wrapping_rem(*b)),
+                (|a: &U8, b: &U8| a.wrapping_rem(*b))
+            );
+            loop_vv(inst, machine, vv_itetator_func)?;
         }
         insts::OP_VREMU_VX => {
             let i = VXtype(inst);
@@ -1452,19 +1553,47 @@ pub fn execute_instruction<Mac: Machine>(
             }
         }
         insts::OP_VREM_VV => {
-            let i = VVtype(inst);
-            let vlmax = VLEN / machine.get_vsew();
-            for j in 0..((machine.get_vl() - 1) / vlmax) + 1 {
-                let num = if machine.get_vl() > vlmax {
-                    vlmax
+            vv_iterator_impl!(
+                (|a: &U1024, b: &U1024| I1024::from(*a).wrapping_rem(I1024::from(*b)).uint),
+                (|a: &U512, b: &U512| I512::from(*a).wrapping_rem(I512::from(*b)).uint),
+                (|a: &U256, b: &U256| I256::from(*a).wrapping_rem(I256::from(*b)).uint),
+                (|a: &U128, b: &U128| if b.0 == 0 {
+                    *a
+                } else if a.0 == 1 << 127 && b.0 == u128::MAX {
+                    U128(0)
                 } else {
-                    machine.get_vl()
-                };
-                let vs1 = machine.vregisters()[i.vs1() as usize + j as usize];
-                let vs2 = machine.vregisters()[i.vs2() as usize + j as usize];
-                let mut vd = machine.get_vregister(i.vd() + j as usize);
-                vfunc_rem_vv(&vs2, &vs1, &mut vd, num as usize)?;
-            }
+                    U128((a.0 as i128).wrapping_rem(b.0 as i128) as u128)
+                }),
+                (|a: &U64, b: &U64| if b.0 == 0 {
+                    *a
+                } else if a.0 == 1 << 63 && b.0 == u64::MAX {
+                    U64(0)
+                } else {
+                    U64((a.0 as i64).wrapping_rem(b.0 as i64) as u64)
+                }),
+                (|a: &U32, b: &U32| if b.0 == 0 {
+                    *a
+                } else if a.0 == 1 << 31 && b.0 == u32::MAX {
+                    U32(0)
+                } else {
+                    U32((a.0 as i32).wrapping_rem(b.0 as i32) as u32)
+                }),
+                (|a: &U16, b: &U16| if b.0 == 0 {
+                    *a
+                } else if a.0 == 1 << 15 && b.0 == u16::MAX {
+                    U16(0)
+                } else {
+                    U16((a.0 as i16).wrapping_rem(b.0 as i16) as u16)
+                }),
+                (|a: &U8, b: &U8| if b.0 == 0 {
+                    *a
+                } else if a.0 == 1 << 7 && b.0 == u8::MAX {
+                    U8(0)
+                } else {
+                    U8((a.0 as i8).wrapping_rem(b.0 as i8) as u8)
+                })
+            );
+            loop_vv(inst, machine, vv_itetator_func)?;
         }
         insts::OP_VREM_VX => {
             let i = VXtype(inst);
@@ -1482,19 +1611,17 @@ pub fn execute_instruction<Mac: Machine>(
             }
         }
         insts::OP_VSLL_VV => {
-            let i = VVtype(inst);
-            let vlmax = VLEN / machine.get_vsew();
-            for j in 0..((machine.get_vl() - 1) / vlmax) + 1 {
-                let num = if machine.get_vl() > vlmax {
-                    vlmax
-                } else {
-                    machine.get_vl()
-                };
-                let vs1 = machine.vregisters()[i.vs1() as usize + j as usize];
-                let vs2 = machine.vregisters()[i.vs2() as usize + j as usize];
-                let mut vd = machine.get_vregister(i.vd() + j as usize);
-                vfunc_sll_vv(&vs2, &vs1, &mut vd, num as usize)?;
-            }
+            vv_iterator_impl!(
+                (|a: &U1024, b: &U1024| *a << b.u32()),
+                (|a: &U512, b: &U512| *a << b.u32()),
+                (|a: &U256, b: &U256| *a << b.u32()),
+                (|a: &U128, b: &U128| *a << b.u32()),
+                (|a: &U64, b: &U64| *a << b.u32()),
+                (|a: &U32, b: &U32| *a << b.u32()),
+                (|a: &U16, b: &U16| *a << b.u32()),
+                (|a: &U8, b: &U8| *a << b.u32())
+            );
+            loop_vv(inst, machine, vv_itetator_func)?;
         }
         insts::OP_VSLL_VX => {
             let i = VXtype(inst);
@@ -1527,19 +1654,17 @@ pub fn execute_instruction<Mac: Machine>(
             }
         }
         insts::OP_VSRL_VV => {
-            let i = VVtype(inst);
-            let vlmax = VLEN / machine.get_vsew();
-            for j in 0..((machine.get_vl() - 1) / vlmax) + 1 {
-                let num = if machine.get_vl() > vlmax {
-                    vlmax
-                } else {
-                    machine.get_vl()
-                };
-                let vs1 = machine.vregisters()[i.vs1() as usize + j as usize];
-                let vs2 = machine.vregisters()[i.vs2() as usize + j as usize];
-                let mut vd = machine.get_vregister(i.vd() + j as usize);
-                vfunc_srl_vv(&vs2, &vs1, &mut vd, num as usize)?;
-            }
+            vv_iterator_impl!(
+                (|a: &U1024, b: &U1024| *a >> b.u32()),
+                (|a: &U512, b: &U512| *a >> b.u32()),
+                (|a: &U256, b: &U256| *a >> b.u32()),
+                (|a: &U128, b: &U128| *a >> b.u32()),
+                (|a: &U64, b: &U64| *a >> b.u32()),
+                (|a: &U32, b: &U32| *a >> b.u32()),
+                (|a: &U16, b: &U16| *a >> b.u32()),
+                (|a: &U8, b: &U8| *a >> b.u32())
+            );
+            loop_vv(inst, machine, vv_itetator_func)?;
         }
         insts::OP_VSRL_VX => {
             let i = VXtype(inst);
@@ -1572,19 +1697,17 @@ pub fn execute_instruction<Mac: Machine>(
             }
         }
         insts::OP_VSRA_VV => {
-            let i = VVtype(inst);
-            let vlmax = VLEN / machine.get_vsew();
-            for j in 0..((machine.get_vl() - 1) / vlmax) + 1 {
-                let num = if machine.get_vl() > vlmax {
-                    vlmax
-                } else {
-                    machine.get_vl()
-                };
-                let vs1 = machine.vregisters()[i.vs1() as usize + j as usize];
-                let vs2 = machine.vregisters()[i.vs2() as usize + j as usize];
-                let mut vd = machine.get_vregister(i.vd() + j as usize);
-                vfunc_sra_vv(&vs2, &vs1, &mut vd, num as usize)?;
-            }
+            vv_iterator_impl!(
+                (|a: &U1024, b: &U1024| a.wrapping_sra(b.u32())),
+                (|a: &U512, b: &U512| a.wrapping_sra(b.u32())),
+                (|a: &U256, b: &U256| a.wrapping_sra(b.u32())),
+                (|a: &U128, b: &U128| a.wrapping_sra(b.u32())),
+                (|a: &U64, b: &U64| a.wrapping_sra(b.u32())),
+                (|a: &U32, b: &U32| a.wrapping_sra(b.u32())),
+                (|a: &U16, b: &U16| a.wrapping_sra(b.u32())),
+                (|a: &U8, b: &U8| a.wrapping_sra(b.u32()))
+            );
+            loop_vv(inst, machine, vv_itetator_func)?;
         }
         insts::OP_VSRA_VX => {
             let i = VXtype(inst);
@@ -1617,19 +1740,17 @@ pub fn execute_instruction<Mac: Machine>(
             }
         }
         insts::OP_VMSEQ_VV => {
-            let i = VVtype(inst);
-            let vlmax = VLEN / machine.get_vsew();
-            for j in 0..((machine.get_vl() - 1) / vlmax) + 1 {
-                let num = if machine.get_vl() > vlmax {
-                    vlmax
-                } else {
-                    machine.get_vl()
-                };
-                let vs1 = machine.vregisters()[i.vs1() as usize + j as usize];
-                let vs2 = machine.vregisters()[i.vs2() as usize + j as usize];
-                let mut vd = machine.get_vregister(i.vd() + j as usize);
-                vfunc_mseq_vv(&vs2, &vs1, &mut vd, num as usize)?;
-            }
+            vv_iterator_impl!(
+                (|a: &U1024, b: &U1024| (a == b).into()),
+                (|a: &U512, b: &U512| (a == b).into()),
+                (|a: &U256, b: &U256| (a == b).into()),
+                (|a: &U128, b: &U128| (a == b).into()),
+                (|a: &U64, b: &U64| (a == b).into()),
+                (|a: &U32, b: &U32| (a == b).into()),
+                (|a: &U16, b: &U16| (a == b).into()),
+                (|a: &U8, b: &U8| (a == b).into())
+            );
+            loop_vv(inst, machine, vv_itetator_func)?;
         }
         insts::OP_VMSEQ_VX => {
             let i = VXtype(inst);
@@ -1662,19 +1783,17 @@ pub fn execute_instruction<Mac: Machine>(
             }
         }
         insts::OP_VMSNE_VV => {
-            let i = VVtype(inst);
-            let vlmax = VLEN / machine.get_vsew();
-            for j in 0..((machine.get_vl() - 1) / vlmax) + 1 {
-                let num = if machine.get_vl() > vlmax {
-                    vlmax
-                } else {
-                    machine.get_vl()
-                };
-                let vs1 = machine.vregisters()[i.vs1() as usize + j as usize];
-                let vs2 = machine.vregisters()[i.vs2() as usize + j as usize];
-                let mut vd = machine.get_vregister(i.vd() + j as usize);
-                vfunc_msne_vv(&vs2, &vs1, &mut vd, num as usize)?;
-            }
+            vv_iterator_impl!(
+                (|a: &U1024, b: &U1024| (a != b).into()),
+                (|a: &U512, b: &U512| (a != b).into()),
+                (|a: &U256, b: &U256| (a != b).into()),
+                (|a: &U128, b: &U128| (a != b).into()),
+                (|a: &U64, b: &U64| (a != b).into()),
+                (|a: &U32, b: &U32| (a != b).into()),
+                (|a: &U16, b: &U16| (a != b).into()),
+                (|a: &U8, b: &U8| (a != b).into())
+            );
+            loop_vv(inst, machine, vv_itetator_func)?;
         }
         insts::OP_VMSNE_VX => {
             let i = VXtype(inst);
@@ -1707,19 +1826,17 @@ pub fn execute_instruction<Mac: Machine>(
             }
         }
         insts::OP_VMSLTU_VV => {
-            let i = VVtype(inst);
-            let vlmax = VLEN / machine.get_vsew();
-            for j in 0..((machine.get_vl() - 1) / vlmax) + 1 {
-                let num = if machine.get_vl() > vlmax {
-                    vlmax
-                } else {
-                    machine.get_vl()
-                };
-                let vs1 = machine.vregisters()[i.vs1() as usize + j as usize];
-                let vs2 = machine.vregisters()[i.vs2() as usize + j as usize];
-                let mut vd = machine.get_vregister(i.vd() + j as usize);
-                vfunc_msltu_vv(&vs2, &vs1, &mut vd, num as usize)?;
-            }
+            vv_iterator_impl!(
+                (|a: &U1024, b: &U1024| (a < b).into()),
+                (|a: &U512, b: &U512| (a < b).into()),
+                (|a: &U256, b: &U256| (a < b).into()),
+                (|a: &U128, b: &U128| (a < b).into()),
+                (|a: &U64, b: &U64| (a < b).into()),
+                (|a: &U32, b: &U32| (a < b).into()),
+                (|a: &U16, b: &U16| (a < b).into()),
+                (|a: &U8, b: &U8| (a < b).into())
+            );
+            loop_vv(inst, machine, vv_itetator_func)?;
         }
         insts::OP_VMSLTU_VX => {
             let i = VXtype(inst);
@@ -1737,19 +1854,49 @@ pub fn execute_instruction<Mac: Machine>(
             }
         }
         insts::OP_VMSLT_VV => {
-            let i = VVtype(inst);
-            let vlmax = VLEN / machine.get_vsew();
-            for j in 0..((machine.get_vl() - 1) / vlmax) + 1 {
-                let num = if machine.get_vl() > vlmax {
-                    vlmax
+            vv_iterator_impl!(
+                (|a: &U1024, b: &U1024| if I1024::from(*a) < I1024::from(*b) {
+                    U1024::ONE
                 } else {
-                    machine.get_vl()
-                };
-                let vs1 = machine.vregisters()[i.vs1() as usize + j as usize];
-                let vs2 = machine.vregisters()[i.vs2() as usize + j as usize];
-                let mut vd = machine.get_vregister(i.vd() + j as usize);
-                vfunc_mslt_vv(&vs2, &vs1, &mut vd, num as usize)?;
-            }
+                    U1024::MIN
+                }),
+                (|a: &U512, b: &U512| if I512::from(*a) < I512::from(*b) {
+                    U512::ONE
+                } else {
+                    U512::MIN
+                }),
+                (|a: &U256, b: &U256| if I256::from(*a) < I256::from(*b) {
+                    U256::ONE
+                } else {
+                    U256::MIN
+                }),
+                (|a: &U128, b: &U128| if (a.0 as i128) < (b.0 as i128) {
+                    U128::ONE
+                } else {
+                    U128::ZERO
+                }),
+                (|a: &U64, b: &U64| if (a.0 as i64) < (b.0 as i64) {
+                    U64::ONE
+                } else {
+                    U64::ZERO
+                }),
+                (|a: &U32, b: &U32| if (a.0 as i32) < (b.0 as i32) {
+                    U32::ONE
+                } else {
+                    U32::ZERO
+                }),
+                (|a: &U16, b: &U16| if (a.0 as i16) < (b.0 as i16) {
+                    U16::ONE
+                } else {
+                    U16::ZERO
+                }),
+                (|a: &U8, b: &U8| if (a.0 as i8) < (b.0 as i8) {
+                    U8::ONE
+                } else {
+                    U8::ZERO
+                })
+            );
+            loop_vv(inst, machine, vv_itetator_func)?;
         }
         insts::OP_VMSLT_VX => {
             let i = VXtype(inst);
@@ -1767,19 +1914,17 @@ pub fn execute_instruction<Mac: Machine>(
             }
         }
         insts::OP_VMSLEU_VV => {
-            let i = VVtype(inst);
-            let vlmax = VLEN / machine.get_vsew();
-            for j in 0..((machine.get_vl() - 1) / vlmax) + 1 {
-                let num = if machine.get_vl() > vlmax {
-                    vlmax
-                } else {
-                    machine.get_vl()
-                };
-                let vs1 = machine.vregisters()[i.vs1() as usize + j as usize];
-                let vs2 = machine.vregisters()[i.vs2() as usize + j as usize];
-                let mut vd = machine.get_vregister(i.vd() + j as usize);
-                vfunc_msleu_vv(&vs2, &vs1, &mut vd, num as usize)?;
-            }
+            vv_iterator_impl!(
+                (|a: &U1024, b: &U1024| (a <= b).into()),
+                (|a: &U512, b: &U512| (a <= b).into()),
+                (|a: &U256, b: &U256| (a <= b).into()),
+                (|a: &U128, b: &U128| (a <= b).into()),
+                (|a: &U64, b: &U64| (a <= b).into()),
+                (|a: &U32, b: &U32| (a <= b).into()),
+                (|a: &U16, b: &U16| (a <= b).into()),
+                (|a: &U8, b: &U8| (a <= b).into())
+            );
+            loop_vv(inst, machine, vv_itetator_func)?;
         }
         insts::OP_VMSLEU_VX => {
             let i = VXtype(inst);
@@ -1812,19 +1957,49 @@ pub fn execute_instruction<Mac: Machine>(
             }
         }
         insts::OP_VMSLE_VV => {
-            let i = VVtype(inst);
-            let vlmax = VLEN / machine.get_vsew();
-            for j in 0..((machine.get_vl() - 1) / vlmax) + 1 {
-                let num = if machine.get_vl() > vlmax {
-                    vlmax
+            vv_iterator_impl!(
+                (|a: &U1024, b: &U1024| if I1024::from(*a) <= I1024::from(*b) {
+                    U1024::ONE
                 } else {
-                    machine.get_vl()
-                };
-                let vs1 = machine.vregisters()[i.vs1() as usize + j as usize];
-                let vs2 = machine.vregisters()[i.vs2() as usize + j as usize];
-                let mut vd = machine.get_vregister(i.vd() + j as usize);
-                vfunc_msle_vv(&vs2, &vs1, &mut vd, num as usize)?;
-            }
+                    U1024::MIN
+                }),
+                (|a: &U512, b: &U512| if I512::from(*a) <= I512::from(*b) {
+                    U512::ONE
+                } else {
+                    U512::MIN
+                }),
+                (|a: &U256, b: &U256| if I256::from(*a) <= I256::from(*b) {
+                    U256::ONE
+                } else {
+                    U256::MIN
+                }),
+                (|a: &U128, b: &U128| if (a.0 as i128) <= (b.0 as i128) {
+                    U128::ONE
+                } else {
+                    U128::ZERO
+                }),
+                (|a: &U64, b: &U64| if (a.0 as i64) <= (b.0 as i64) {
+                    U64::ONE
+                } else {
+                    U64::ZERO
+                }),
+                (|a: &U32, b: &U32| if (a.0 as i32) <= (b.0 as i32) {
+                    U32::ONE
+                } else {
+                    U32::ZERO
+                }),
+                (|a: &U16, b: &U16| if (a.0 as i16) <= (b.0 as i16) {
+                    U16::ONE
+                } else {
+                    U16::ZERO
+                }),
+                (|a: &U8, b: &U8| if (a.0 as i8) <= (b.0 as i8) {
+                    U8::ONE
+                } else {
+                    U8::ZERO
+                })
+            );
+            loop_vv(inst, machine, vv_itetator_func)?;
         }
         insts::OP_VMSLE_VX => {
             let i = VXtype(inst);
