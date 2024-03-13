@@ -7,7 +7,7 @@ use ckb_vm::{
     memory::{round_page_down, round_page_up, FLAG_EXECUTABLE, FLAG_FREEZED},
     snapshot2::{DataSource, Snapshot2Context},
     Bytes, CoreMachine, DefaultMachine, DefaultMachineBuilder, Error, Memory, ISA_A, ISA_B,
-    ISA_IMC, ISA_MOP,
+    ISA_IMC, ISA_MOP, RISCV_PAGES, RISCV_PAGESIZE,
 };
 use ckb_vm_definitions::{asm::AsmCoreMachine, RISCV_MAX_MEMORY};
 use libfuzzer_sys::fuzz_target;
@@ -76,11 +76,18 @@ impl Fuzzing for DummyData {
                 data: Bytes::new(),
             };
         }
-        // TODO: make it more?
         let program_size = u16::from_le_bytes(data[0..2].try_into().unwrap()) as usize;
         let data_size = u16::from_le_bytes(data[2..4].try_into().unwrap()) as usize;
-        let program = vec![0xFF as u8; program_size].into();
-        let data = vec![0xFF as u8; data_size].into();
+        let mut program = vec![0u8; program_size];
+        for i in 0..program.len() {
+            program[i] = (i % 256) as u8;
+        }
+        let program = program.into();
+        let mut data = vec![0u8; data_size];
+        for i in 0..data.len() {
+            data[i] = (i % 255) as u8;
+        }
+        let data = data.into();
         Self { program, data }
     }
 }
@@ -197,15 +204,20 @@ fuzz_target!(|data: &[u8]| {
     if result.is_err() {
         return;
     }
-    let mem1 = machine1
-        .memory_mut()
-        .load_bytes(0, RISCV_MAX_MEMORY as u64)
-        .unwrap();
-    let mem2 = machine2
-        .memory_mut()
-        .load_bytes(0, RISCV_MAX_MEMORY as u64)
-        .unwrap();
-    if mem1 != mem2 {
-        panic!("The memory restored by operation resume is not same as snapshot operation");
+
+    for i in 0..RISCV_PAGES {
+        let mem1 = machine1
+            .memory_mut()
+            .load_bytes((i * RISCV_PAGESIZE) as u64, RISCV_PAGESIZE as u64)
+            .unwrap();
+        let mem2 = machine2
+            .memory_mut()
+            .load_bytes((i * RISCV_PAGESIZE) as u64, RISCV_PAGESIZE as u64)
+            .unwrap();
+        if mem1 != mem2 {
+            eprintln!("mem1 = {:?}", mem1);
+            eprintln!("mem2 = {:?}", mem2);
+            panic!("The memory restored by operation resume is not same as snapshot operation at page {}", i);
+        }
     }
 });
