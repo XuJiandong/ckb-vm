@@ -16,6 +16,9 @@ spike-sys = "0.1.2"
 path = ".."
 features = ["asm"]
 
+[dependencies.ckb-vm-definitions]
+path = "../definitions"
+
 # Prevent this from interfering with workspaces
 [workspace]
 members = ["."]
@@ -41,5 +44,11 @@ doc = false
 [[bin]]
 name = "isa_b"
 path = "fuzz_targets/isa_b.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "snapshot2"
+path = "fuzz_targets/snapshot2.rs"
 test = false
 doc = false
