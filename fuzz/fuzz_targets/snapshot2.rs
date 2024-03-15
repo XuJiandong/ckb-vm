@@ -7,7 +7,7 @@ use ckb_vm::{
     Bytes, CoreMachine, DefaultMachine, DefaultMachineBuilder, Error, Memory, ISA_A, ISA_B,
     ISA_IMC, ISA_MOP,
 };
-use ckb_vm_definitions::{asm::AsmCoreMachine, RISCV_MAX_MEMORY};
+use ckb_vm_definitions::{asm::AsmCoreMachine, DEFAULT_MEMORY_SIZE};
 use libfuzzer_sys::fuzz_target;
 use std::collections::VecDeque;
 
@@ -58,13 +58,9 @@ impl DataSource<u32> for DummyData {
             _ => unreachable!(),
         };
         let offset = std::cmp::min(offset as usize, data.len());
-        let full_length = data.len() - offset;
-        let size = if length > 0 {
-            std::cmp::min(full_length, length as usize)
-        } else {
-            full_length
-        };
-        Ok((data.slice(offset..offset + size), full_length as u64))
+        let full_size = data.len() - offset;
+        let real_size = std::cmp::min(full_size, length as usize);
+        Ok((data.slice(offset..offset + real_size), full_size as u64))
     }
 }
 
@@ -140,11 +136,11 @@ fuzz_target!(|data: [u8; 32]| {
     ctx.resume(&mut machine2, &snapshot).unwrap();
     let mem1 = machine1
         .memory_mut()
-        .load_bytes(0, RISCV_MAX_MEMORY as u64)
+        .load_bytes(0, DEFAULT_MEMORY_SIZE as u64)
         .unwrap();
     let mem2 = machine2
         .memory_mut()
-        .load_bytes(0, RISCV_MAX_MEMORY as u64)
+        .load_bytes(0, DEFAULT_MEMORY_SIZE as u64)
         .unwrap();
     assert_eq!(mem1, mem2);
 });
