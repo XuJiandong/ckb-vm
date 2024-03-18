@@ -1,13 +1,14 @@
+#![allow(dead_code)]
 #![no_main]
 use ckb_vm::{
     elf::{LoadingAction, ProgramMetadata},
     machine::VERSION2,
     memory::{round_page_down, round_page_up, FLAG_EXECUTABLE, FLAG_FREEZED},
     snapshot2::{DataSource, Snapshot2Context},
-    Bytes, CoreMachine, DefaultMachine, DefaultMachineBuilder, Error, Memory, ISA_A, ISA_B,
-    ISA_IMC, ISA_MOP,
+    Bytes, CoreMachine, DefaultMachine, DefaultMachineBuilder, Error, Memory, DEFAULT_MEMORY_SIZE,
+    ISA_A, ISA_B, ISA_IMC, ISA_MOP, RISCV_PAGESIZE,
 };
-use ckb_vm_definitions::{asm::AsmCoreMachine, DEFAULT_MEMORY_SIZE};
+use ckb_vm_definitions::asm::AsmCoreMachine;
 use libfuzzer_sys::fuzz_target;
 use std::collections::VecDeque;
 
@@ -16,7 +17,7 @@ struct Deque {
 }
 
 impl Deque {
-    fn new(data: [u8; 32]) -> Self {
+    fn new(data: [u8; 96]) -> Self {
         Self {
             n: VecDeque::from(data),
         }
@@ -43,6 +44,7 @@ impl Deque {
 
 const DATA_SOURCE_PROGRAM: u32 = 0;
 const DATA_SOURCE_CONTENT: u32 = 1;
+const MAX_TX_SIZE: u32 = 600_000;
 
 #[derive(Clone)]
 pub struct DummyData {
@@ -70,16 +72,31 @@ fn build_machine() -> DefaultMachine<Box<AsmCoreMachine>> {
     DefaultMachineBuilder::new(core_machine).build()
 }
 
-fuzz_target!(|data: [u8; 32]| {
+fn dump_loading_action(action: &LoadingAction) {
+    eprintln!(
+        "LoadingAction: addr = {}, size = {}, source = {}..{}, offset_from_addr = {}",
+        action.addr, action.size, action.source.start, action.source.end, action.offset_from_addr
+    );
+}
+
+#[derive(Debug)]
+struct StoreBytesAction {
+    pub addr: u64,
+    pub offset: u64,
+    pub length: u64,
+}
+
+fuzz_target!(|data: [u8; 96]| {
     let mut deque = Deque::new(data);
     let dummy_data = {
-        let mut program = vec![0u8; deque.u16() as usize + 1024];
+        let mut program = vec![0u8; (deque.u32() % MAX_TX_SIZE) as usize];
         for i in 0..program.len() {
-            program[i] = (i % 256) as u8;
+            // fill with different pattern than content
+            program[i] = (i % 3) as u8;
         }
-        let mut content = vec![0u8; deque.u16() as usize + 1024];
+        let mut content = vec![0u8; (deque.u32() % MAX_TX_SIZE) as usize];
         for i in 0..content.len() {
-            content[i] = (i / 256) as u8;
+            content[i] = (i % 5) as u8;
         }
         DummyData {
             program: program.into(),
@@ -87,18 +104,19 @@ fuzz_target!(|data: [u8; 32]| {
         }
     };
     let mut loading_action_vec: Vec<LoadingAction> = Vec::new();
-    for i in 0..2 + deque.u8() as usize % 3 {
-        let segsize = deque.u16() as u64 % 1024;
-        let p_vaddr = i as u64 * 1024 * 256;
-        let p_memsz = segsize;
-        let p_offset = deque.u32() as u64 % (dummy_data.program.len() as u64 - segsize);
-        let p_filesz = segsize;
+    for _ in 0..2 {
+        let p_vaddr = deque.u32() as u64;
+        let p_memsz = deque.u32() as u64;
+        let p_offset = deque.u32() as u64;
+        let p_filesz = deque.u32() as u64;
         let aligned_start = round_page_down(p_vaddr);
         let padding_start = (p_vaddr).wrapping_sub(aligned_start);
         let size = round_page_up((p_memsz).wrapping_add(padding_start));
         let slice_start = p_offset;
         let slice_end = p_offset.wrapping_add(p_filesz);
-        assert!(slice_start <= slice_end);
+        if slice_start >= slice_end || slice_end >= dummy_data.program.len() as u64 {
+            return;
+        }
         loading_action_vec.push(LoadingAction {
             addr: aligned_start,
             size,
@@ -109,38 +127,58 @@ fuzz_target!(|data: [u8; 32]| {
     }
     let mut ctx = Snapshot2Context::new(dummy_data.clone());
     let metadata = ProgramMetadata {
-        actions: loading_action_vec,
+        actions: loading_action_vec.clone(),
         entry: 0,
     };
 
     let mut machine1 = build_machine();
     let mut machine2 = build_machine();
-    machine1
-        .load_program_with_metadata(&dummy_data.program, &metadata, &vec![])
-        .unwrap();
-    ctx.mark_program(&mut machine1, &metadata, &0, 0).unwrap();
-    for i in 0..2 + deque.u8() as usize % 3 {
-        let id = i as u32 % 2;
-        let data = match id {
-            DATA_SOURCE_PROGRAM => &dummy_data.program,
-            DATA_SOURCE_CONTENT => &dummy_data.content,
-            _ => unreachable!(),
-        };
-        let length = deque.u16() as u64 % 1024;
-        let offset = deque.u32() as u64 % (data.len() as u64 - length);
-        let addr = 1024 * 1024 + (deque.u8() as u64 % 4) * 1024 * 256;
-        ctx.store_bytes(&mut machine1, addr, &id, offset, length)
-            .unwrap();
+    let result = machine1.load_program_with_metadata(&dummy_data.program, &metadata, &vec![]);
+    if result.is_err() {
+        return;
+    }
+    let result = ctx.mark_program(&mut machine1, &metadata, &0, 0);
+    if result.is_err() {
+        return;
+    }
+    let mut store_bytes_actions = vec![];
+    for _ in 0..2 {
+        let length = deque.u32() as u64;
+        let offset = deque.u32() as u64;
+        let addr = deque.u32() as u64;
+        let result = ctx.store_bytes(&mut machine1, addr, &DATA_SOURCE_CONTENT, offset, length);
+        if result.is_err() {
+            return;
+        }
+        store_bytes_actions.push(StoreBytesAction {
+            addr,
+            offset,
+            length,
+        });
     }
     let snapshot = ctx.make_snapshot(&mut machine1).unwrap();
     ctx.resume(&mut machine2, &snapshot).unwrap();
-    let mem1 = machine1
-        .memory_mut()
-        .load_bytes(0, DEFAULT_MEMORY_SIZE as u64)
-        .unwrap();
-    let mem2 = machine2
-        .memory_mut()
-        .load_bytes(0, DEFAULT_MEMORY_SIZE as u64)
-        .unwrap();
-    assert_eq!(mem1, mem2);
+    for i in 0..DEFAULT_MEMORY_SIZE / RISCV_PAGESIZE {
+        let mem1 = machine1
+            .memory_mut()
+            .load_bytes((i * RISCV_PAGESIZE) as u64, RISCV_PAGESIZE as u64)
+            .unwrap();
+        let mem2 = machine2
+            .memory_mut()
+            .load_bytes((i * RISCV_PAGESIZE) as u64, RISCV_PAGESIZE as u64)
+            .unwrap();
+        if mem1 != mem2 {
+            eprintln!("mem1[0..16] = {:?}", &mem1[0..32]);
+            eprintln!("mem2[0..16] = {:?}", &mem2[0..32]);
+            eprintln!("program length = {}", dummy_data.program.len());
+            eprintln!("content length = {}", dummy_data.content.len());
+            for action in &loading_action_vec {
+                dump_loading_action(action);
+            }
+            for action in &store_bytes_actions {
+                eprintln!("{:?}", action);
+            }
+            panic!("The memory restored by operation resume is not same as snapshot operation at page {}", i);
+        }
+    }
 });
