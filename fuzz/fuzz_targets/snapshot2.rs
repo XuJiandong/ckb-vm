@@ -96,7 +96,7 @@ fuzz_target!(|data: [u8; 96]| {
         }
         let mut content = vec![0u8; (deque.u32() % MAX_TX_SIZE) as usize];
         for i in 0..content.len() {
-            content[i] = (i % 5) as u8;
+            content[i] = (i % 5) as u8 + 10;
         }
         DummyData {
             program: program.into(),
@@ -147,14 +147,14 @@ fuzz_target!(|data: [u8; 96]| {
         let offset = deque.u32() as u64;
         let addr = deque.u32() as u64;
         let result = ctx.store_bytes(&mut machine1, addr, &DATA_SOURCE_CONTENT, offset, length);
-        if result.is_err() {
-            return;
-        }
         store_bytes_actions.push(StoreBytesAction {
             addr,
             offset,
             length,
         });
+        if result.is_err() {
+            return;
+        }
     }
     let snapshot = ctx.make_snapshot(&mut machine1).unwrap();
     ctx.resume(&mut machine2, &snapshot).unwrap();
