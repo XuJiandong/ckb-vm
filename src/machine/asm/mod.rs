@@ -12,7 +12,6 @@ use ckb_vm_definitions::{
         RET_PAUSE, RET_SLOWPATH,
     },
 };
-use rand::{SeedableRng, prelude::RngCore};
 use std::alloc::{Layout, alloc, alloc_zeroed};
 use std::mem::MaybeUninit;
 use std::os::raw::c_uchar;
@@ -134,13 +133,7 @@ pub extern "C" fn inited_memory(frame_index: u64, machine: &mut AsmCoreMachine) 
         addr_from,
         1 << MEMORY_FRAME_SHIFTS,
     );
-    if is_chaos_mode {
-        let mut rgen = rand::rngs::StdRng::seed_from_u64(chaos_seed);
-        rgen.fill_bytes(slice);
-        machine.chaos_seed = rgen.next_u32();
-    } else {
-        memset(slice, 0);
-    }
+    memset(slice, 0);
 }
 
 fn check_memory<R: AsmCoreMachineRevealer>(machine: &mut R, page: u64) {
