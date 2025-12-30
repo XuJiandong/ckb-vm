@@ -1,6 +1,10 @@
 use crate::Register;
-use std::fmt::{self, Display};
-use std::ops::{BitAnd, BitOr, BitXor, Not, Shl, Shr};
+use core::fmt::{self, Display};
+use core::ops::{BitAnd, BitOr, BitXor, Not, Shl, Shr};
+
+#[cfg(not(feature = "std"))]
+use alloc::rc::Rc;
+#[cfg(feature = "std")]
 use std::rc::Rc;
 
 #[derive(Debug, Clone, Copy)]

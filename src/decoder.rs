@@ -1,6 +1,9 @@
 use ckb_vm_definitions::instructions::{self as insts};
 use ckb_vm_definitions::registers::{RA, ZERO};
 
+#[cfg(not(feature = "std"))]
+use alloc::{vec, vec::Vec};
+
 use crate::error::OutOfBoundKind;
 use crate::instructions::{
     Instruction, InstructionFactory, Itype, R4type, R5type, Register, Rtype, Utype, a, b,

@@ -4,6 +4,9 @@ use crate::memory::Memory;
 use crate::{CoreMachine, Error, RISCV_GENERAL_REGISTER_NUMBER, RISCV_PAGE_SHIFTS, RISCV_PAGESIZE};
 use serde::{Deserialize, Serialize};
 
+#[cfg(not(feature = "std"))]
+use alloc::{vec, vec::Vec};
+
 // Snapshot provides a mechanism for suspending and resuming a virtual machine.
 //
 // When cycle limit is too low, our work won't be finished when we hit it and

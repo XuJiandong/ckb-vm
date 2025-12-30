@@ -12,7 +12,16 @@ homepage = "https://github.com/nervosnetwork/ckb-vm"
 repository = "https://github.com/nervosnetwork/ckb-vm"
 
 [features]
-default = []
+default = ["std"]
+std = [
+    "goblin_v023/std",
+    "goblin_v040/std",
+    "byteorder/std",
+    "bytes/std",
+    "serde/std",
+    "ckb-vm-definitions/std",
+    "rand",
+]
 # Require asm feature, generates an error if asm cannot be enabled.
 asm = []
 # Detect if requirements are met, and enable asm feature when we can.
@@ -23,15 +32,15 @@ miri-ci = []
 pprof = []
 
 [dependencies]
-byteorder = "1"
-bytes = "1"
-goblin_v023 = { package = "goblin", version = "=0.2.3" }
-goblin_v040 = { package = "goblin", version = "=0.4.0" }
-scroll = "0.10"
-serde = { version = "1.0", features = ["derive"] }
+byteorder = { version = "1", default-features = false }
+bytes = { version = "1", default-features = false }
+goblin_v023 = { package = "goblin", version = "=0.2.3", default-features = false, features = ["alloc", "elf32", "elf64", "mach32", "mach64", "pe32", "pe64", "archive", "endian_fd"] }
+goblin_v040 = { package = "goblin", version = "=0.4.0", default-features = false, features = ["alloc", "elf32", "elf64", "mach32", "mach64", "pe32", "pe64", "archive", "endian_fd"] }
+scroll = { version = "0.10", default-features = false }
+serde = { version = "1.0", default-features = false, features = ["derive", "alloc"] }
 ckb-vm-definitions = { path = "definitions", version = "=0.24.0" }
-derive_more = { version = "1", features = ["full"] }
-rand = "0.7.3"
+derive_more = { version = "1", default-features = false, features = ["full"] }
+rand = { version = "0.7.3", optional = true }
 
 [build-dependencies]
 cc = "1.0"

@@ -6,8 +6,12 @@ use crate::{
     memory::{FLAG_DIRTY, Memory, get_page_indices},
 };
 use bytes::Bytes;
+use core::cmp::min;
 use serde::{Deserialize, Serialize};
-use std::cmp::min;
+
+#[cfg(not(feature = "std"))]
+use alloc::{collections::BTreeMap as HashMap, vec, vec::Vec};
+#[cfg(feature = "std")]
 use std::collections::HashMap;
 
 const PAGE_SIZE: u64 = RISCV_PAGESIZE as u64;

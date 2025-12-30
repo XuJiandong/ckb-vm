@@ -18,7 +18,11 @@ use crate::{
     },
     memory::Memory,
 };
-use std::alloc::{Layout, alloc, alloc_zeroed};
+use core::alloc::{Layout, alloc, alloc_zeroed};
+
+#[cfg(not(feature = "std"))]
+use alloc::collections::BTreeMap as HashMap;
+#[cfg(feature = "std")]
 use std::collections::HashMap;
 
 pub trait TraceDecoder: InstDecoder {

@@ -2,8 +2,11 @@ use super::super::{Error, RISCV_PAGE_SHIFTS, RISCV_PAGESIZE, Register, error::Ou
 use super::{FLAG_DIRTY, Memory, Page, check_no_overflow, fill_page_data, memset, round_page_down};
 
 use bytes::Bytes;
-use std::cmp::min;
-use std::marker::PhantomData;
+use core::cmp::min;
+use core::marker::PhantomData;
+
+#[cfg(not(feature = "std"))]
+use alloc::{vec, vec::Vec};
 
 const INVALID_PAGE_INDEX: u16 = 0xFFFF;
 

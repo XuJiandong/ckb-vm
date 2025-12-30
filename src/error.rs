@@ -1,3 +1,6 @@
+#[cfg(not(feature = "std"))]
+use alloc::string::{String, ToString};
+
 #[derive(Debug, PartialEq, Clone, Eq, Display)]
 pub enum Error {
     #[display("asm error: {_0}")]
@@ -28,6 +31,7 @@ pub enum Error {
     InvalidOp(u16),
     #[display("invalid version")]
     InvalidVersion,
+    #[cfg(feature = "std")]
     #[display("I/O error: {kind:?} {data}")]
     IO {
         kind: std::io::ErrorKind,
@@ -59,8 +63,9 @@ pub enum OutOfBoundKind {
     ExternalData,
 }
 
-impl std::error::Error for Error {}
+impl core::error::Error for Error {}
 
+#[cfg(feature = "std")]
 impl From<std::io::Error> for Error {
     fn from(error: std::io::Error) -> Self {
         Error::IO {

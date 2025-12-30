@@ -2,12 +2,23 @@
 pub mod asm;
 pub mod trace;
 
-use std::fmt::{self, Display};
-use std::marker::PhantomData;
+use core::fmt::{self, Display};
+use core::marker::PhantomData;
+
+#[cfg(not(feature = "std"))]
+use alloc::sync::Arc;
+#[cfg(feature = "std")]
 use std::sync::Arc;
+
+#[cfg(not(feature = "std"))]
+use core::sync::atomic::{AtomicU8, Ordering};
+#[cfg(feature = "std")]
 use std::sync::atomic::{AtomicU8, Ordering};
 
 use bytes::Bytes;
+
+#[cfg(not(feature = "std"))]
+use alloc::{boxed::Box, string::String, vec, vec::Vec};
 
 use super::debugger::Debugger;
 use super::decoder::{DefaultDecoder, InstDecoder};

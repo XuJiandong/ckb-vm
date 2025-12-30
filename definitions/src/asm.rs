@@ -1,5 +1,9 @@
 use crate::{RISCV_GENERAL_REGISTER_NUMBER, instructions::Instruction};
+
+#[cfg(feature = "std")]
 use std::alloc::{Layout, dealloc};
+#[cfg(not(feature = "std"))]
+use alloc::alloc::{Layout, dealloc};
 
 // The number of trace items to keep
 pub const TRACE_SIZE: usize = 8192;

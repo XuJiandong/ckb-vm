@@ -10,6 +10,10 @@ use ckb_vm_definitions::{
     instructions::{self as insts, paste},
     registers::RA,
 };
+use core::ops::Index;
+
+#[cfg(not(feature = "std"))]
+use alloc::vec::Vec;
 
 pub fn handle_sub<Mac: Machine>(machine: &mut Mac, inst: Instruction) -> Result<(), Error> {
     let i = Rtype(inst);
@@ -1626,7 +1630,7 @@ impl<Mac: Machine> ThreadFactory<Mac> {
     }
 }
 
-impl<Mac: Machine> std::ops::Index<InstructionOpcode> for ThreadFactory<Mac> {
+impl<Mac: Machine> Index<InstructionOpcode> for ThreadFactory<Mac> {
     type Output = Thread<Mac>;
 
     fn index(&self, opcode: InstructionOpcode) -> &Thread<Mac> {

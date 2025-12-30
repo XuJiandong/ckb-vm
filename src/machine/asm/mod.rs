@@ -12,9 +12,14 @@ use ckb_vm_definitions::{
         RET_PAUSE, RET_SLOWPATH,
     },
 };
+use core::alloc::{Layout, alloc, alloc_zeroed};
+use core::mem::MaybeUninit;
+#[cfg(feature = "std")]
 use rand::{SeedableRng, prelude::RngCore};
-use std::alloc::{Layout, alloc, alloc_zeroed};
-use std::mem::MaybeUninit;
+
+#[cfg(not(feature = "std"))]
+use core::ffi::c_uchar;
+#[cfg(feature = "std")]
 use std::os::raw::c_uchar;
 
 use crate::{
@@ -134,11 +139,18 @@ pub extern "C" fn inited_memory(frame_index: u64, machine: &mut AsmCoreMachine) 
         addr_from,
         1 << MEMORY_FRAME_SHIFTS,
     );
+    #[cfg(feature = "std")]
     if is_chaos_mode {
         let mut rgen = rand::rngs::StdRng::seed_from_u64(chaos_seed);
         rgen.fill_bytes(slice);
         machine.chaos_seed = rgen.next_u32();
     } else {
+        memset(slice, 0);
+    }
+    #[cfg(not(feature = "std"))]
+    {
+        let _ = is_chaos_mode;
+        let _ = chaos_seed;
         memset(slice, 0);
     }
 }

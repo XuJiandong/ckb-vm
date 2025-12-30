@@ -12,6 +12,9 @@ use super::{
 };
 use bytes::Bytes;
 
+#[cfg(not(feature = "std"))]
+use alloc::{vec, vec::Vec};
+
 // The number of trace items to keep
 const TRACE_SIZE: usize = 8192;
 // Quick bit-mask to truncate a value in trace size range

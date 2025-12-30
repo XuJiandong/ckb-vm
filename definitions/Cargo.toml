@@ -11,6 +11,8 @@ homepage = "https://github.com/nervosnetwork/ckb-vm"
 repository = "https://github.com/nervosnetwork/ckb-vm"
 
 [features]
+default = ["std"]
+std = []
 enable-chaos-mode-by-default = []
 
 [[bin]]
